@@ -1,0 +1,11 @@
+{
+  "title": "ipas 2026",
+  "description": "Engaging educational platform designed for elementary school children, offering interactive learning experiences to enhance knowledge and skills.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
