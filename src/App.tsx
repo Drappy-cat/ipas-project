@@ -1,105 +1,153 @@
 import { useState, useEffect, useRef } from 'react';
-
+import { auth, db } from './firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from 'firebase/auth';
+import { collection, addDoc, getDocs, query, where, serverTimestamp, doc, setDoc, getDoc } from 'firebase/firestore';
 // ─── Types ─────────────────────────────────────────────────────────────────
 type Screen =
   | 'homepage' | 'splash' | 'onboarding'
-  | 'roleSelect' | 'loginGuru'
+  | 'roleSelect' | 'loginGuru' | 'loginSiswa'
   | 'teacherDash' | 'uploadMateri' | 'buatInteraktif' | 'progressSiswa' | 'kelolaBab' | 'pengaturanGuru'
   | 'studentHome' | 'daftarBab' | 'detailBab'
   | 'bacaMateri' | 'mediaHub'
   | 'dragDrop' | 'flipCards' | 'virtualEksperimen' | 'simulasiAir'
-  | 'quiz' | 'hasilKuis' | 'proyekP5' | 'arena';
+| 'quiz' | 'hasilKuis' | 'proyekP5' | 'arena';
 
-// ─── Kurikulum Merdeka · IPAS Kelas 4 ──────────────────────────────────────
+const SimpleRichTextEditor = ({ value, onChange }: { value: string, onChange: (val: string) => void }) => {
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value || '';
+    }
+  }, [value]);
+
+  const exec = (command: string, val: string | undefined = undefined) => {
+    document.execCommand(command, false, val);
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  return (
+    <div className="border border-sky-300 rounded-2xl overflow-hidden bg-white flex flex-col shadow-sm mt-2 transition-all focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-100">
+      <div className="bg-sky-50/50 border-b border-sky-100 p-2 flex flex-wrap gap-1.5 items-center">
+        <button type="button" onClick={() => exec('bold')} className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 font-black text-gray-700">B</button>
+        <button type="button" onClick={() => exec('italic')} className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 italic font-serif text-gray-700">I</button>
+        <button type="button" onClick={() => exec('underline')} className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 underline text-gray-700">U</button>
+        <div className="w-px h-5 bg-gray-300 mx-1" />
+        <button type="button" onClick={() => exec('insertUnorderedList')} className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 text-xl leading-none text-gray-700">•</button>
+        <button type="button" onClick={() => exec('insertOrderedList')} className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 text-xs font-bold leading-none text-gray-700">1.</button>
+        <div className="w-px h-5 bg-gray-300 mx-1" />
+        <select onChange={(e) => exec('fontName', e.target.value)} className="p-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 bg-white cursor-pointer outline-none shadow-sm">
+          <option value="Inter, sans-serif">Font Normal</option>
+          <option value="Comic Sans MS, cursive">Comic</option>
+          <option value="Georgia, serif">Georgia</option>
+        </select>
+        <select onChange={(e) => exec('fontSize', e.target.value)} className="p-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 bg-white cursor-pointer outline-none shadow-sm">
+          <option value="3">Ukuran Sedang</option>
+          <option value="5">Besar</option>
+          <option value="7">Sangat Besar</option>
+        </select>
+        <div className="w-px h-5 bg-gray-300 mx-1" />
+        <button type="button" onClick={() => exec('justifyLeft')} className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 text-xs text-gray-700">⫷</button>
+        <button type="button" onClick={() => exec('justifyCenter')} className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 text-xs text-gray-700">≣</button>
+      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        className="flex-1 p-5 outline-none overflow-y-auto text-gray-700 text-sm [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-2"
+        style={{ minHeight: '300px' }}
+        onInput={(e) => onChange(e.currentTarget.innerHTML)}
+        onBlur={(e) => onChange(e.currentTarget.innerHTML)}
+        placeholder="Ketik materi yang menarik di sini..."
+      />
+    </div>
+  );
+};
+
+// ─── Kurikulum Merdeka · IPAS Kelas 3 ──────────────────────────────────────
 const BAB_LIST = [
   {
-    id: 1, emoji: '🌿',
-    judul: 'Tumbuhan, Sumber Kehidupan di Bumi',
-    gradient: 'from-green-500 to-emerald-600',
-    cp: 'Peserta didik mendeskripsikan bagian tumbuhan dan fungsinya serta proses fotosintesis.',
-    topics: ['Bagian-bagian Tumbuhan', 'Proses Fotosintesis', 'Manfaat Tumbuhan bagi Kehidupan', 'Perkembangbiakan Tumbuhan'],
-    done: 2, total: 4, progress: 50,
+    id: 1, emoji: '👤',
+    judul: 'Keajaiban Tubuhku',
+    gradient: 'from-amber-500 to-orange-600',
+    cp: 'Peserta didik mengenal bagian tubuh manusia beserta fungsinya.',
+    topics: ['Bagian Tubuh Kita', 'Fungsi Anggota Tubuh', 'Merawat Tubuh'],
     materi: [
-      { type: 'pdf', icon: '📄', title: 'Rangkuman Bab 1 — Tumbuhan', uploader: 'Bu Sari', tanggal: '2 hari lalu' },
+      { type: 'pdf', icon: '📄', title: 'Rangkuman Bab 1 — Tubuhku', uploader: 'Bu Sari', tanggal: '2 hari lalu' },
     ],
     interaktif: [
-      { type: 'matching', icon: '🧩', title: 'Cocokkan Bagian Tumbuhan & Fungsinya', screen: 'dragDrop' as Screen },
-      { type: 'simulasi', icon: '🔬', title: 'Simulasi Siklus Air', screen: 'simulasiAir' as Screen },
+      { type: 'matching', icon: '🧩', title: 'Cocokkan Bagian Tubuh & Fungsinya', screen: 'dragDrop' as Screen },
     ],
   },
   {
-    id: 2, emoji: '🧪',
-    judul: 'Wujud Zat dan Perubahannya',
+    id: 2, emoji: '⏳',
+    judul: 'Dahulu, Kini, dan Nanti',
+    gradient: 'from-green-500 to-emerald-600',
+    cp: 'Peserta didik menceritakan perubahan yang terjadi pada diri dan sekitarnya dari waktu ke waktu.',
+    topics: ['Arah Mata Angin', 'Denah Tempat'],
+    materi: [],
+    interaktif: [],
+  },
+  {
+    id: 3, emoji: '🤝',
+    judul: 'Peduli dan Berbagi',
+    gradient: 'from-lime-600 to-green-700',
+    cp: 'Peserta didik memahami pentingnya bersikap peduli dan berbagi dengan sesama.',
+    topics: ['Gotong Royong', 'Saling Menghargai'],
+    materi: [],
+    interaktif: [],
+  },
+  {
+    id: 4, emoji: '🦋',
+    judul: 'Siklus Hidup yang Menakjubkan',
+    gradient: 'from-yellow-400 to-amber-500',
+    cp: 'Peserta didik mengamati dan mendeskripsikan siklus hidup makhluk hidup.',
+    topics: ['Siklus Hidup Tumbuhan', 'Siklus Hidup Hewan'],
+    materi: [],
+    interaktif: [
+      { type: 'simulasi', icon: '🔬', title: 'Simulasi Metamorfosis', screen: 'simulasiAir' as Screen },
+    ],
+  },
+  {
+    id: 5, emoji: '🛒',
+    judul: 'Bijak Berbelanja Kebutuhan',
     gradient: 'from-blue-500 to-cyan-600',
-    cp: 'Peserta didik mengelompokkan wujud zat dan mendeskripsikan perubahan wujud dalam kehidupan.',
-    topics: ['Wujud Padat, Cair, Gas', 'Perubahan Wujud Zat', 'Perubahan Fisika & Kimia'],
-    done: 0, total: 3, progress: 0,
+    cp: 'Peserta didik mengenal nilai mata uang dan prioritas kebutuhan sehari-hari.',
+    topics: ['Kenampakan Alam', 'Ciri Khas Daerah'],
+    materi: [],
+    interaktif: [],
+  },
+  {
+    id: 6, emoji: '⚡',
+    judul: 'Energi, sang Pemberi Kekuatan!',
+    gradient: 'from-violet-500 to-purple-600',
+    cp: 'Peserta didik mengenal bentuk energi dan memanfaatkannya.',
+    topics: ['Sumber Energi', 'Bentuk Energi', 'Manfaat Energi'],
+    materi: [],
+    interaktif: [
+      { type: 'eksperimen', icon: '🔭', title: 'Percobaan Virtual: Sumber Energi', screen: 'virtualEksperimen' as Screen },
+    ],
+  },
+  {
+    id: 7, emoji: '🗺️',
+    judul: 'Jejak Penjelajah',
+    gradient: 'from-rose-500 to-pink-600',
+    cp: 'Peserta didik memahami arah mata angin dan denah sederhana.',
+    topics: ['Gaya Magnet', 'Gaya Gesek', 'Gaya Gravitasi'],
+    materi: [],
+    interaktif: [],
+  },
+  {
+    id: 8, emoji: '🧊',
+    judul: 'Rahasia Tiga Wujud Zat',
+    gradient: 'from-teal-500 to-cyan-600',
+    cp: 'Peserta didik mengidentifikasi benda padat, cair, dan gas beserta perubahannya.',
+    topics: ['Wujud Benda', 'Perubahan Wujud'],
     materi: [],
     interaktif: [
       { type: 'flipcard', icon: '🃏', title: 'Kartu Konsep Wujud Zat', screen: 'flipCards' as Screen },
     ],
-  },
-  {
-    id: 3, emoji: '⚡',
-    judul: 'Gaya di Sekitar Kita',
-    gradient: 'from-violet-500 to-purple-600',
-    cp: 'Peserta didik menjelaskan jenis-jenis gaya dan pengaruhnya terhadap benda.',
-    topics: ['Pengertian Gaya', 'Gaya Magnet & Gravitasi', 'Gaya Gesek', 'Pengaruh Gaya'],
-    done: 0, total: 4, progress: 0,
-    materi: [],
-    interaktif: [
-      { type: 'eksperimen', icon: '🔭', title: 'Percobaan Virtual: Sifat Magnet', screen: 'virtualEksperimen' as Screen },
-    ],
-  },
-  {
-    id: 4, emoji: '🔋',
-    judul: 'Mengubah Bentuk Energi',
-    gradient: 'from-amber-500 to-orange-500',
-    cp: 'Peserta didik mengidentifikasi sumber energi dan menjelaskan perubahan bentuk energi.',
-    topics: ['Sumber Energi Terbarukan', 'Bentuk-bentuk Energi', 'Perubahan Energi'],
-    done: 0, total: 3, progress: 0,
-    materi: [],
-    interaktif: [],
-  },
-  {
-    id: 5, emoji: '🏡',
-    judul: 'Cerita tentang Daerahku',
-    gradient: 'from-rose-500 to-pink-600',
-    cp: 'Peserta didik mengenal dan menghargai keunikan daerah tempat tinggalnya.',
-    topics: ['Sejarah Daerah', 'Keunikan Budaya', 'Keunggulan Daerah'],
-    done: 0, total: 3, progress: 0,
-    materi: [],
-    interaktif: [],
-  },
-  {
-    id: 6, emoji: '🏝️',
-    judul: 'Indonesiaku Kaya Raya',
-    gradient: 'from-red-500 to-orange-600',
-    cp: 'Peserta didik mengidentifikasi keragaman SDA Indonesia dan pentingnya menjaga kelestariannya.',
-    topics: ['Keragaman Alam Indonesia', 'Sumber Daya Alam', 'Menjaga Kelestarian SDA'],
-    done: 0, total: 3, progress: 0,
-    materi: [],
-    interaktif: [],
-  },
-  {
-    id: 7, emoji: '🛒',
-    judul: 'Bagaimana Mendapatkan Keperluan?',
-    gradient: 'from-teal-500 to-cyan-600',
-    cp: 'Peserta didik memahami kebutuhan, keinginan, dan kegiatan ekonomi sederhana.',
-    topics: ['Kebutuhan vs Keinginan', 'Cara Pemenuhan Kebutuhan', 'Kegiatan Ekonomi'],
-    done: 0, total: 3, progress: 0,
-    materi: [],
-    interaktif: [],
-  },
-  {
-    id: 8, emoji: '🌍',
-    judul: 'Memelihara Ekosistem',
-    gradient: 'from-lime-600 to-green-700',
-    cp: 'Peserta didik mendeskripsikan ekosistem dan rantai makanan serta upaya pelestariannya.',
-    topics: ['Komponen Ekosistem', 'Rantai Makanan & Jaring Makanan', 'Peran Manusia dalam Ekosistem'],
-    done: 0, total: 3, progress: 0,
-    materi: [],
-    interaktif: [],
   },
 ];
 
@@ -111,71 +159,81 @@ const MEDIA_TEMPLATES = [
   { id: 'observasi', icon: '🔭', name: 'Lembar Observasi', desc: 'Panduan pengamatan digital terpandu untuk siswa', color: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-200' },
 ];
 
-// Drag-drop data — Bab 1: Bagian Tumbuhan
-const PLANT_LEFT = ['🌱 Akar', '🌿 Batang', '🍃 Daun', '🌸 Bunga'];
+// Drag-drop data — Bab 1: Keajaiban Tubuhku
+const PLANT_LEFT = ['👀 Mata', '👂 Telinga', '👃 Hidung', '👄 Mulut'];
 const PLANT_RIGHT = [
-  'Mengangkut air & nutrisi ke seluruh tubuh',  // → Batang (idx 1)
-  'Menyerap air & mineral dari dalam tanah',    // → Akar (idx 0)
-  'Alat perkembangbiakan tumbuhan',             // → Bunga (idx 3)
-  'Tempat berlangsungnya fotosintesis',         // → Daun (idx 2)
+  'Untuk mencicipi makanan dan berbicara',
+  'Untuk mendengarkan suara sekitar',
+  'Untuk melihat keindahan dunia',
+  'Untuk bernapas dan mencium bau',
 ];
 // CORRECT_MATCH[leftIdx] = rightIdx
-const CORRECT_MATCH: Record<number, number> = { 0: 1, 1: 0, 2: 3, 3: 2 };
+const CORRECT_MATCH: Record<number, number> = { 0: 2, 1: 1, 2: 3, 3: 0 };
 
-// Flip cards — Bab 2: Wujud Zat
+// Flip cards — Bab 8: Wujud Zat
 const FLIP_CARDS = [
-  { front: 'Padat', back: 'Bentuk & volume tetap. Partikel tersusun sangat rapat. Contoh: batu, kayu, es batu.' },
-  { front: 'Cair', back: 'Volume tetap, bentuk mengikuti wadahnya. Contoh: air, minyak, susu.' },
-  { front: 'Gas', back: 'Tidak punya bentuk & volume tetap — mengisi seluruh ruang. Contoh: udara, uap air.' },
-  { front: 'Membeku', back: 'Perubahan cair → padat saat suhu turun. Contoh: air menjadi es di freezer.' },
-  { front: 'Mencair', back: 'Perubahan padat → cair saat suhu naik. Contoh: es cream di panas matahari.' },
-  { front: 'Menguap', back: 'Perubahan cair → gas saat dipanaskan. Contoh: air mendidih menjadi uap.' },
+  { front: 'Padat', back: 'Bentuk dan ukurannya tetap. Contoh: Kayu, Batu.' },
+  { front: 'Cair', back: 'Bentuk mengikuti wadahnya, ukuran tetap. Contoh: Air, Minyak.' },
+  { front: 'Gas', back: 'Bentuk dan ukuran berubah memenuhi ruang. Contoh: Udara.' },
+  { front: 'Mencair', back: 'Perubahan padat menjadi cair.' },
+  { front: 'Membeku', back: 'Perubahan cair menjadi padat.' },
+  { front: 'Menguap', back: 'Perubahan cair menjadi gas.' },
 ];
 
-// Virtual experiment — Bab 3: Sifat Magnet
+// Virtual experiment — Bab 6: Energi
 const EXP_STEPS = [
-  { step: 1, icon: '🔧', title: 'Siapkan Alat & Bahan', body: 'Siapkan: 1 magnet batang, klip kertas (besi), koin logam, pensil kayu, penggaris plastik, dan paku kecil.', tip: '⚠️ Mintalah bantuan guru ketika menggunakan benda tajam.' },
-  { step: 2, icon: '🤔', title: 'Buat Prediksi', body: 'Sebelum mencoba, prediksi: benda mana yang akan ditarik magnet? Tulis perkiraanmu di buku catatan!', tip: '💡 Pikirkan: dari bahan apa setiap benda dibuat?' },
-  { step: 3, icon: '🧲', title: 'Lakukan Percobaan', body: 'Dekatkan magnet satu per satu ke setiap benda. Amati apakah benda tertarik atau tidak tertarik oleh magnet.', tip: '📋 Catat hasil: Tertarik (✓) atau Tidak Tertarik (✗)' },
-  { step: 4, icon: '📊', title: 'Catat Hasil', body: 'Klip kertas ✓ | Koin (tembaga) ✗ | Pensil (kayu) ✗ | Penggaris (plastik) ✗ | Paku besi ✓', tip: '🔍 Mengapa koin tidak tertarik padahal terbuat dari logam?' },
-  { step: 5, icon: '🎯', title: 'Simpulkan!', body: 'Magnet hanya menarik benda yang mengandung besi atau baja (bahan feromagnetik). Tidak semua logam bersifat magnetis!', tip: '🌟 Kamu sudah menjadi ilmuwan cilik! Luar biasa!' },
+  { step: 1, icon: '🔧', title: 'Siapkan Alat & Bahan', body: 'Siapkan: lilin, korek api, kertas lipat, gunting, dan benang secukupnya.', tip: '⚠️ Mintalah bantuan guru saat menyalakan api.' },
+  { step: 2, icon: '✂️', title: 'Buat Spiral Kertas', body: 'Gunting kertas lipat melingkar hingga membentuk spiral. Ikat ujungnya dengan benang.', tip: '💡 Pastikan potongan kertas tidak terlalu tebal.' },
+  { step: 3, icon: '🕯️', title: 'Nyalakan Lilin', body: 'Nyalakan lilin. Tempatkan kertas spiral di atas api (jangan sampai menyentuh api!).', tip: '📋 Amati apa yang terjadi pada kertas.' },
+  { step: 4, icon: '🔄', title: 'Catat Hasil', body: 'Kertas spiral berputar-putar dengan sendirinya ketika berada di atas nyala api lilin.', tip: '🔍 Kenapa kertasnya bisa bergerak berputar?' },
+  { step: 5, icon: '🎯', title: 'Simpulkan!', body: 'Energi panas dari lilin membuat udara bergerak (kinetik), sehingga kertas ikut berputar. Terjadi perubahan energi!', tip: '🌟 Kamu sudah menjadi ilmuwan cilik! Luar biasa!' },
 ];
 
-// Simulasi siklus air
+// Simulasi Metamorfosis (Bab 4)
 const SIM_STEPS = [
-  { label: 'Evaporasi', icon: '☀️', color: 'text-amber-500', desc: 'Panas matahari memanaskan permukaan air laut, danau, dan sungai. Air berubah menjadi uap air dan naik ke atmosfer.' },
-  { label: 'Kondensasi', icon: '☁️', color: 'text-blue-400', desc: 'Uap air yang naik ke atmosfer mendingin dan berubah menjadi titik-titik air kecil yang membentuk awan.' },
-  { label: 'Presipitasi', icon: '🌧️', color: 'text-sky-600', desc: 'Ketika awan sudah jenuh, air jatuh ke bumi sebagai hujan, salju, atau hujan es.' },
-  { label: 'Infiltrasi & Aliran', icon: '🏞️', color: 'text-emerald-600', desc: 'Air hujan meresap ke tanah (infiltrasi) atau mengalir melalui sungai kembali ke laut, lalu siklus berulang.' },
+  { label: 'Telur', icon: '🥚', color: 'text-gray-500', desc: 'Kupu-kupu betina bertelur di daun. Telur ini kecil dan menempel kuat.' },
+  { label: 'Ulat', icon: '🐛', color: 'text-green-600', desc: 'Telur menetas menjadi ulat. Ulat rakus dan terus memakan daun untuk tumbuh.' },
+  { label: 'Kepompong', icon: '🎋', color: 'text-amber-700', desc: 'Ulat membungkus dirinya menjadi kepompong. Di dalam sini, tubuhnya berubah bentuk.' },
+  { label: 'Kupu-Kupu', icon: '🦋', color: 'text-blue-500', desc: 'Kupu-kupu keluar dari kepompong dengan sayap indah, siap terbang mencari nektar.' },
 ];
 
 // IPAS Kuis (lintas bab)
 const QUIZ_IPAS = [
-  { q: 'Bagian tumbuhan yang berfungsi menyerap air dan mineral dari dalam tanah adalah...', opts: ['Daun', 'Batang', 'Akar', 'Bunga'], correct: 2, img: '🌱' },
-  { q: 'Proses pembuatan makanan pada tumbuhan dengan bantuan cahaya matahari disebut...', opts: ['Respirasi', 'Fotosintesis', 'Transpirasi', 'Pollinasi'], correct: 1, img: '☀️' },
-  { q: 'Perubahan wujud zat dari cair menjadi gas disebut...', opts: ['Membeku', 'Mencair', 'Mengembun', 'Menguap'], correct: 3, img: '💧' },
-  { q: 'Magnet dapat menarik benda yang terbuat dari...', opts: ['Plastik', 'Kayu', 'Besi/Baja', 'Karet'], correct: 2, img: '🧲' },
-  { q: 'Manakah yang termasuk sumber energi terbarukan?', opts: ['Minyak bumi', 'Batu bara', 'Gas alam', 'Sinar matahari'], correct: 3, img: '🔋' },
+  { q: 'Bagian tubuh yang berfungsi untuk melihat adalah...', opts: ['Hidung', 'Telinga', 'Mata', 'Kulit'], correct: 2, img: '👀' },
+  { q: 'Perubahan ulat menjadi kupu-kupu disebut...', opts: ['Mencair', 'Metamorfosis', 'Menetas', 'Tumbuh'], correct: 1, img: '🦋' },
+  { q: 'Energi yang dihasilkan oleh setrika adalah energi...', opts: ['Panas', 'Cahaya', 'Bunyi', 'Gerak'], correct: 0, img: '🔌' },
+  { q: 'Es batu yang dibiarkan di tempat terbuka akan...', opts: ['Membeku', 'Menguap', 'Mengkristal', 'Mencair'], correct: 3, img: '🧊' },
+  { q: 'Membeli barang yang benar-benar kita perlukan disebut belanja...', opts: ['Keinginan', 'Kebutuhan', 'Mewah', 'Boros'], correct: 1, img: '🛒' },
+  { q: 'Bagian tumbuhan yang bertugas menyerap air dari dalam tanah adalah...', opts: ['Daun', 'Akar', 'Batang', 'Bunga'], correct: 1, img: '🌱' },
+  { q: 'Proses tumbuhan membuat makanannya sendiri dengan bantuan cahaya matahari disebut...', opts: ['Respirasi', 'Transpirasi', 'Fotosintesis', 'Metabolisme'], correct: 2, img: '☀️' },
+  { q: 'Benda yang dapat ditarik oleh magnet adalah...', opts: ['Kayu', 'Kertas', 'Besi', 'Plastik'], correct: 2, img: '🧲' },
+  { q: 'Contoh hewan karnivora (pemakan daging) adalah...', opts: ['Sapi', 'Harimau', 'Kambing', 'Kelinci'], correct: 1, img: '🐅' },
+  { q: 'Perubahan wujud dari cair menjadi gas saat air mendidih disebut...', opts: ['Menguap', 'Mencair', 'Membeku', 'Menyublim'], correct: 0, img: '♨️' },
+  { q: 'Matahari terbit dari sebelah...', opts: ['Timur', 'Barat', 'Utara', 'Selatan'], correct: 0, img: '🌅' },
+  { q: 'Fungsi utama daun pada tumbuhan adalah...', opts: ['Menyerap air', 'Tempat fotosintesis', 'Menyokong batang', 'Menarik serangga'], correct: 1, img: '🍃' },
+  { q: 'Benda langit yang bersinar sendiri dan menjadi pusat tata surya adalah...', opts: ['Bulan', 'Bintang', 'Matahari', 'Meteor'], correct: 2, img: '🌞' },
+  { q: 'Tempat bertemunya penjual dan pembeli untuk melakukan jual beli disebut...', opts: ['Sekolah', 'Pasar', 'Rumah Sakit', 'Taman'], correct: 1, img: '🏪' },
+  { q: 'Semboyan negara kita "Bhinneka Tunggal Ika" memiliki arti...', opts: ['Bersatu kita teguh', 'Berbeda-beda tetapi tetap satu jua', 'Satu Nusa Satu Bangsa', 'Merdeka atau Mati'], correct: 1, img: '🇮🇩' }
 ];
 
 // SAINS SPRINT — arena adu-cepat pernyataan Benar/Salah (lintas bab IPAS)
 const ARENA_STATEMENTS = [
-  { s: 'Akar berfungsi menyerap air dan mineral dari dalam tanah.', benar: true, bab: 'Tumbuhan', emoji: '🌱' },
-  { s: 'Fotosintesis dapat berlangsung di malam hari tanpa cahaya matahari.', benar: false, bab: 'Tumbuhan', emoji: '☀️' },
-  { s: 'Perubahan wujud dari cair menjadi gas disebut menguap.', benar: true, bab: 'Wujud Zat', emoji: '💧' },
-  { s: 'Es batu yang mencair adalah contoh perubahan padat menjadi gas.', benar: false, bab: 'Wujud Zat', emoji: '🧊' },
-  { s: 'Magnet dapat menarik semua jenis logam, termasuk emas dan tembaga.', benar: false, bab: 'Gaya', emoji: '🧲' },
-  { s: 'Gaya gesek dapat memperlambat gerak sebuah benda.', benar: true, bab: 'Gaya', emoji: '⚡' },
-  { s: 'Sinar matahari termasuk sumber energi terbarukan.', benar: true, bab: 'Energi', emoji: '🔋' },
-  { s: 'Batu bara adalah sumber energi yang tidak akan pernah habis.', benar: false, bab: 'Energi', emoji: '🪨' },
-  { s: 'Dalam rantai makanan, tumbuhan hijau berperan sebagai produsen.', benar: true, bab: 'Ekosistem', emoji: '🌍' },
-  { s: 'Bunga adalah bagian tumbuhan yang bertugas menyerap air dari tanah.', benar: false, bab: 'Tumbuhan', emoji: '🌸' },
+  { s: 'Hidung berfungsi untuk mencium bau.', benar: true, bab: 'Tubuh', emoji: '👃' },
+  { s: 'Air termasuk benda padat.', benar: false, bab: 'Wujud Zat', emoji: '💧' },
+  { s: 'Kepompong adalah salah satu fase dalam daur hidup kupu-kupu.', benar: true, bab: 'Siklus Hidup', emoji: '🦋' },
+  { s: 'Kipas angin menghasilkan energi panas.', benar: false, bab: 'Energi', emoji: '💨' },
+  { s: 'Mainan adalah contoh kebutuhan utama.', benar: false, bab: 'Kebutuhan', emoji: '🧸' },
+  { s: 'Tolong menolong termasuk perbuatan terpuji.', benar: true, bab: 'Berbagi', emoji: '🤝' },
+  { s: 'Matahari merupakan sumber energi.', benar: true, bab: 'Energi', emoji: '☀️' },
+  { s: 'Benda gas tidak memiliki bentuk.', benar: true, bab: 'Wujud Zat', emoji: '💨' },
+  { s: 'Uang digunakan sebagai alat tukar.', benar: true, bab: 'Belanja', emoji: '💵' },
+  { s: 'Denah membantu kita mencari lokasi.', benar: true, bab: 'Penjelajah', emoji: '🗺️' },
 ];
 
 const UPLOADED_FILES = [
-  { icon: '📄', name: 'Rangkuman_Bab1_Tumbuhan.pdf', size: '1.2 MB', bab: 'Bab 1', status: 'Aktif' },
-  { icon: '🎬', name: 'Video_Fotosintesis.mp4', size: '45 MB', bab: 'Bab 1', status: 'Aktif' },
-  { icon: '🖼️', name: 'Infografis_WujudZat.png', size: '800 KB', bab: 'Bab 2', status: 'Draf' },
+  { icon: '📄', name: 'Rangkuman_Bab1_Tubuhku.pdf', size: '1.2 MB', bab: 'Bab 1', status: 'Aktif' },
+  { icon: '🎬', name: 'Video_Siklus_Kupu_Kupu.mp4', size: '45 MB', bab: 'Bab 4', status: 'Aktif' },
+  { icon: '🖼️', name: 'Infografis_Wujud_Zat.png', size: '800 KB', bab: 'Bab 8', status: 'Draf' },
 ];
 
 // ─── Scroll Animation Component ───────────────────────────────────────────────
@@ -235,11 +293,94 @@ export default function App() {
   // Upload flow (multi-step wizard)
   const [uploadStep, setUploadStep] = useState(0);
   const [uploadChapter, setUploadChapter] = useState('');
-  const [uploadType, setUploadType] = useState('');
+  const [uploadType, setUploadType] = useState('text'); // default to text for prototype
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadDesc, setUploadDesc] = useState('');
+  const [uploadContent, setUploadContent] = useState(''); // New state for pasted text
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadDone, setUploadDone] = useState(false);
+  const [isUploadingDB, setIsUploadingDB] = useState(false);
+
+  // Firestore Data State
+  const [dbMaterials, setDbMaterials] = useState<any[]>([]);
+  const [dbUsers, setDbUsers] = useState<any[]>([]);
+  const [activeMaterial, setActiveMaterial] = useState<any>(null);
+  
+  // User Profile State
+  const [userProfile, setUserProfile] = useState<{ xp: number; coins: number; completedModules: Record<number, string[]> }>({ xp: 0, coins: 0, completedModules: {} });
+
+  // Handle Authentication and load profile
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const docRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setUserProfile({ xp: data.xp || 0, coins: data.coins || 0, completedModules: data.completedModules || {} });
+          } else {
+            const defaultProfile = { xp: 0, coins: 0, completedModules: {} };
+            await setDoc(docRef, defaultProfile);
+            setUserProfile(defaultProfile);
+          }
+        } catch (e) { console.error("Error fetching user profile", e); }
+      } else {
+        setUserProfile({ xp: 0, coins: 0 });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const addXP = async (amount: number) => {
+    const user = auth.currentUser;
+    if (!user) return;
+    const newXP = userProfile.xp + amount;
+    setUserProfile(prev => ({ ...prev, xp: newXP }));
+    try {
+      await setDoc(doc(db, 'users', user.uid), { xp: newXP }, { merge: true });
+    } catch (e) { console.error("Error saving XP", e); }
+  };
+
+  const markCompleted = async (babId: number, moduleName: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
+    
+    if (userProfile.completedModules[babId]?.includes(moduleName)) return;
+
+    setUserProfile(prev => {
+      const prevMods = prev.completedModules[babId] || [];
+      if (prevMods.includes(moduleName)) return prev;
+
+      const newMods = [...prevMods, moduleName];
+      const newCompletedModules = { ...prev.completedModules, [babId]: newMods };
+      
+      setDoc(doc(db, 'users', user.uid), { completedModules: newCompletedModules }, { merge: true })
+        .catch(e => console.error("Error saving completed modules", e));
+        
+      return { ...prev, completedModules: newCompletedModules };
+    });
+  };
+
+  // Fetch Firestore Data when screen changes to avoid manual refresh
+  useEffect(() => {
+    if (['detailBab', 'teacherDash', 'studentHome', 'progressSiswa', 'kelolaBab'].includes(screen)) {
+      const fetchDb = async () => {
+        try {
+          const snapMaterials = await getDocs(query(collection(db, 'materials')));
+          setDbMaterials(snapMaterials.docs.map(d => ({ id: d.id, ...d.data() })));
+          
+          if (['teacherDash', 'progressSiswa', 'kelolaBab'].includes(screen)) {
+            const snapUsers = await getDocs(query(collection(db, 'users')));
+            setDbUsers(snapUsers.docs.map(d => ({ id: d.id, ...d.data() })));
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      fetchDb();
+    }
+  }, [screen]);
 
   // Buat Interaktif
   const [selectedTemplate, setSelectedTemplate] = useState('');
@@ -374,9 +515,9 @@ export default function App() {
       bg: 'from-emerald-600 via-teal-600 to-cyan-700',
       icon: '🔬',
       iconBg: 'bg-white/20',
-      tag: 'IPAS Kelas 4 · Kurikulum Merdeka',
+      tag: 'IPAS Kelas 3 · Kurikulum Merdeka',
       title: 'Belajar IPAS\nJadi Seru!',
-      body: 'Platform belajar digital yang dirancang khusus untuk siswa Kelas 4 SD — sesuai Kurikulum Merdeka 2024.',
+      body: 'Platform belajar digital yang dirancang khusus untuk siswa Kelas 3 SD — sesuai Kurikulum Merdeka 2024.',
       detail: ['📚 8 Bab Pembelajaran', '🎮 Media Interaktif', '🌱 Proyek P5'],
     },
     {
@@ -419,7 +560,11 @@ export default function App() {
   };
   const nextQ = () => {
     if (quizQ < QUIZ_IPAS.length - 1) { setQuizQ(q => q + 1); setQuizAns(null); setQuizFeed(false); }
-    else navigate('hasilKuis');
+    else {
+      addXP(quizCorrect * 10);
+      markCompleted(BAB_LIST[currentBabIdx].id, 'kuis');
+      navigate('hasilKuis');
+    }
   };
 
   const handleMatchLeft = (i: number) => { if (matched[i] !== undefined) return; setSelLeft(i); };
@@ -522,7 +667,7 @@ export default function App() {
 
   // ── 0. HOMEPAGE / PENGANTAR ───────────────────────────────────────────────
   if (screen === 'homepage') return (
-    <div className="h-screen bg-white flex flex-col overflow-hidden relative">
+    <div className="h-full bg-white flex flex-col overflow-hidden relative">
       <div className="flex-1 overflow-y-auto">
         {/* Hero Section */}
         <div className="relative w-full h-[520px] rounded-b-[3rem] shadow-xl overflow-hidden flex flex-col transition-colors duration-700"
@@ -805,22 +950,12 @@ export default function App() {
             <div className="pt-8 pb-4 border-t border-gray-100 flex flex-col items-center justify-center text-center mt-6">
               <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-4">Didukung Oleh</p>
               <div className="flex gap-6 items-center justify-center mb-5">
-                {/* 
-                  NANTI GANTI BAGIAN INI DENGAN LOGO KEMENDIKBUD 
-                  Contoh: <img src="link_logo_kemendikbud.png" alt="Kemendikbud" className="h-12 object-contain" />
-                */}
-                <div className="w-14 h-14 bg-gray-50 rounded-full flex flex-col items-center justify-center border-2 border-gray-200 border-dashed">
-                  <span className="text-[10px] font-bold text-gray-400">Logo</span>
-                  <span className="text-[8px] text-gray-400 leading-none">Kemdikbud</span>
+                <div className="w-16 h-16 flex items-center justify-center bg-white rounded-full border border-gray-100 shadow-sm p-2">
+                  <img src="/logo-kkn.png" alt="KKN Gubugklakah" className="w-full h-full object-contain" />
                 </div>
                 
-                {/* 
-                  NANTI GANTI BAGIAN INI DENGAN LOGO UNESA
-                  Contoh: <img src="link_logo_unesa.png" alt="UNESA" className="h-12 object-contain" />
-                */}
-                <div className="w-14 h-14 bg-gray-50 rounded-full flex flex-col items-center justify-center border-2 border-gray-200 border-dashed">
-                  <span className="text-[10px] font-bold text-gray-400">Logo</span>
-                  <span className="text-[8px] text-gray-400 leading-none">UNESA</span>
+                <div className="w-16 h-16 flex items-center justify-center bg-white rounded-full border border-gray-100 shadow-sm p-2">
+                  <img src="/logo-unesa.png" alt="UNESA" className="w-full h-full object-contain" />
                 </div>
               </div>
               <p className="text-gray-600 text-xs font-bold mb-1">Hak Cipta © 2026</p>
@@ -849,7 +984,7 @@ export default function App() {
 
   // ── 0a. SPLASH ────────────────────────────────────────────────────────────
   if (screen === 'splash') return (
-    <div className="h-screen flex flex-col items-center justify-center overflow-hidden relative"
+    <div className="h-full flex flex-col items-center justify-center overflow-hidden relative"
       style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 25%, #0f766e 60%, #0e7490 100%)' }}>
 
       {/* Animated mesh rings */}
@@ -914,7 +1049,7 @@ export default function App() {
           </h1>
           <div className="flex items-center justify-center gap-3 mb-3">
             <div className="flex-1 h-px bg-gradient-to-r from-transparent to-white/40" />
-            <p className="text-emerald-200 font-black text-sm tracking-[0.3em] uppercase">Kelas 4</p>
+            <p className="text-emerald-200 font-black text-sm tracking-[0.3em] uppercase">Kelas 3</p>
             <div className="flex-1 h-px bg-gradient-to-l from-transparent to-white/40" />
           </div>
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 border border-white/20">
@@ -937,10 +1072,10 @@ export default function App() {
 
   // ── 1. ROLE SELECT ─────────────────────────────────────────────────────────
   if (screen === 'roleSelect') return (
-    <div className="h-screen bg-gradient-to-br from-emerald-600 via-teal-700 to-cyan-800 flex flex-col items-center justify-center px-6 overflow-hidden">
+    <div className="h-full bg-gradient-to-br from-emerald-600 via-teal-700 to-cyan-800 flex flex-col items-center justify-center px-6 overflow-hidden">
       <div className="text-center mb-10">
         <div className="w-24 h-24 bg-white/20 rounded-[2rem] flex items-center justify-center text-5xl mx-auto mb-5 backdrop-blur-sm" style={{ animation: 'float 3s ease-in-out infinite' }}>🔬</div>
-        <h1 className="text-4xl font-display text-white mb-1">IPAS Kelas 4</h1>
+        <h1 className="text-4xl font-display text-white mb-1">IPAS Kelas 3</h1>
         <p className="text-emerald-100 font-medium">Platform Belajar Kurikulum Merdeka</p>
       </div>
       <div className="w-full space-y-4">
@@ -953,7 +1088,7 @@ export default function App() {
           </div>
           <span className="text-sky-500 text-xl">→</span>
         </button>
-        <button onClick={() => { setScreens(['studentHome']); setActiveTab('home'); }}
+        <button onClick={() => { navigate('loginSiswa'); }}
           className="w-full bg-white/20 backdrop-blur-sm rounded-3xl p-5 flex items-center gap-4 border border-white/30 active:scale-95 transition-transform">
           <div className="w-16 h-16 bg-emerald-400/30 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0">🧑‍🎓</div>
           <div className="flex-1 text-left">
@@ -975,25 +1110,41 @@ export default function App() {
 
   // ── 1a. LOGIN GURU ─────────────────────────────────────────────────────────
   if (screen === 'loginGuru') {
-    const handleLogin = () => {
+    const handleLogin = async () => {
       if (!loginUser || !loginPass) {
-        setLoginError('Username dan password harus diisi.');
+        setLoginError('Email dan password harus diisi.');
         return;
       }
       if (parseInt(captchaInput) !== captcha.n1 + captcha.n2) {
         setLoginError('Hitungan CAPTCHA salah. Coba lagi!');
-        setCaptcha({
-          n1: Math.floor(Math.random() * 10) + 1,
-          n2: Math.floor(Math.random() * 10) + 1
-        });
+        setCaptcha({ n1: Math.floor(Math.random() * 10) + 1, n2: Math.floor(Math.random() * 10) + 1 });
         setCaptchaInput('');
         return;
       }
-      navigate('teacherDash');
+
+      const email = loginUser.includes('@') ? loginUser : loginUser.split(' ').join('').toLowerCase() + '@guru.sekolah.com';
+      try {
+        await signInWithEmailAndPassword(auth, email, loginPass);
+        navigate('teacherDash');
+      } catch (error: any) {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+          try {
+            await createUserWithEmailAndPassword(auth, email, loginPass);
+            await updateProfile(auth.currentUser!, { displayName: loginUser.split('@')[0] });
+            navigate('teacherDash');
+          } catch (err2: any) {
+            setLoginError('Gagal register: ' + err2.message);
+          }
+        } else if (error.code === 'auth/invalid-email') {
+          setLoginError('Format email tidak valid. Gunakan format nama@sekolah.com');
+        } else {
+          setLoginError('Error: ' + error.message);
+        }
+      }
     };
 
     return (
-      <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+      <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
         <div className="bg-gradient-to-br from-sky-600 to-indigo-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0 shadow-lg">
           <div className="flex items-center gap-3 mb-3">
             <BackBtn onBack={goBack} light />
@@ -1020,16 +1171,16 @@ export default function App() {
 
             <div className="space-y-5">
               <div>
-                <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wide">Username / NIP</label>
+                <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wide">Email</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-3 text-gray-400">👤</span>
-                  <input type="text" value={loginUser} onChange={e => setLoginUser(e.target.value)} 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all font-medium text-gray-700" placeholder="Masukkan username..." />
+                  <span className="absolute left-4 top-3 text-gray-400">📧</span>
+                  <input type="email" value={loginUser} onChange={e => setLoginUser(e.target.value)} 
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all font-medium text-gray-700" placeholder="Masukkan email..." />
                 </div>
               </div>
               
               <div>
-                <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wide">Password</label>
+                <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wide">Password (Min 6 karakter)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-3 text-gray-400">🔑</span>
                   <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} 
@@ -1061,25 +1212,127 @@ export default function App() {
     );
   }
 
+  // ── 1b. LOGIN SISWA ─────────────────────────────────────────────────────────
+  if (screen === 'loginSiswa') {
+    const handleLoginSiswa = async () => {
+      if (!loginUser || !loginPass) {
+        setLoginError('Email dan password harus diisi.');
+        return;
+      }
+      const email = loginUser.includes('@') ? loginUser : loginUser.split(' ').join('').toLowerCase() + '@siswa.sekolah.com';
+      try {
+        await signInWithEmailAndPassword(auth, email, loginPass);
+        setScreens(['studentHome']);
+        setActiveTab('home');
+      } catch (error: any) {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+          try {
+            await createUserWithEmailAndPassword(auth, email, loginPass);
+            await updateProfile(auth.currentUser!, { displayName: loginUser.split('@')[0] });
+            setScreens(['studentHome']);
+            setActiveTab('home');
+          } catch (err2: any) {
+            setLoginError('Gagal register: ' + err2.message);
+          }
+        } else if (error.code === 'auth/invalid-email') {
+          setLoginError('Format email tidak valid. Gunakan format nama@sekolah.com');
+        } else {
+          setLoginError('Error: ' + error.message);
+        }
+      }
+    };
+
+    return (
+      <div className="h-full bg-emerald-50 flex flex-col overflow-hidden">
+        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0 shadow-lg">
+          <div className="flex items-center gap-3 mb-3">
+            <BackBtn onBack={goBack} light />
+            <div>
+              <p className="text-emerald-100 text-xs font-semibold tracking-wider">Akses Belajar</p>
+              <p className="text-white font-display text-xl">Login Siswa 🧑‍🎓</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col justify-center">
+          <div className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-100 relative">
+            <h2 className="font-display text-2xl text-gray-800 mb-6 text-center mt-2">Mulai Belajar</h2>
+            
+            {loginError && (
+              <div className="bg-red-50 text-red-600 text-xs font-bold p-3 rounded-xl mb-5 text-center">
+                {loginError}
+              </div>
+            )}
+
+            <div className="space-y-5">
+              <div>
+                <label className="text-xs font-bold text-gray-500 mb-2 block uppercase">Email Siswa</label>
+                <input type="email" value={loginUser} onChange={e => setLoginUser(e.target.value)} 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="siswa@sekolah.com" />
+              </div>
+              
+              <div>
+                <label className="text-xs font-bold text-gray-500 mb-2 block uppercase">Password (Min 6)</label>
+                <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="••••••••" />
+              </div>
+            </div>
+
+            <button onClick={handleLoginSiswa} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-4 rounded-xl font-bold mt-8 shadow-lg shadow-emerald-200 active:scale-95 transition-transform flex items-center justify-center gap-2 text-base">
+              Masuk / Daftar <span>→</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── 2. TEACHER DASHBOARD ───────────────────────────────────────────────────
-  if (screen === 'teacherDash') return (
-    <div className="h-screen bg-[#F0F9FF] flex flex-col overflow-hidden">
+  if (screen === 'teacherDash') {
+    const totalMateri = dbMaterials.length;
+    const totalInteraktif = BAB_LIST.reduce((acc, bab) => acc + bab.interaktif.length, 0);
+    const totalSiswa = dbUsers.length > 0 ? dbUsers.length - 1 : 0; // Exclude teacher if present
+
+    const getClassProgress = (babId: number, hasInteraktif: boolean) => {
+      if (totalSiswa <= 0) return 0;
+      const totalNodes = hasInteraktif ? 4 : 3;
+      let totalProgress = 0;
+      let countSiswa = 0;
+      
+      dbUsers.forEach(u => {
+        // Simple logic to skip teacher accounts
+        if (u.id === auth.currentUser?.uid) return;
+        countSiswa++;
+        
+        const completed = u.completedModules?.[babId] || [];
+        let count = 0;
+        if (completed.includes('materi')) count++;
+        if (completed.includes('interaktif')) count++;
+        if (completed.includes('kuis')) count++;
+        if (completed.includes('proyek')) count++;
+        totalProgress += (count / totalNodes) * 100;
+      });
+      
+      return countSiswa > 0 ? Math.round(totalProgress / countSiswa) : 0;
+    };
+
+    return (
+    <div className="h-full bg-[#F0F9FF] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-sky-600 to-indigo-700 px-5 pt-10 pb-7 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-sm">👩‍🏫</div>
             <div>
               <p className="text-sky-200 text-xs font-semibold">Selamat datang,</p>
-              <p className="text-white font-display text-xl">Bu Sari 👋</p>
+              <p className="text-white font-display text-xl">{auth.currentUser?.displayName || 'Guru'} 👋</p>
             </div>
           </div>
-          <button onClick={() => setScreens(['roleSelect'])} className="bg-white/20 rounded-xl px-3 py-1.5 text-white text-xs font-bold backdrop-blur-sm">Keluar</button>
+          <button onClick={() => { signOut(auth); setScreens(['roleSelect']); }} className="bg-white/20 rounded-xl px-3 py-1.5 text-white text-xs font-bold backdrop-blur-sm">Keluar</button>
         </div>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Materi', value: '12', icon: '📁' },
-            { label: 'Interaktif', value: '8', icon: '🎮' },
-            { label: 'Siswa Aktif', value: '28', icon: '👥' },
+            { label: 'Materi', value: totalMateri, icon: '📁' },
+            { label: 'Interaktif', value: totalInteraktif, icon: '🎮' },
+            { label: 'Siswa Aktif', value: totalSiswa, icon: '👥' },
           ].map((s, i) => (
             <div key={i} className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
               <span className="text-2xl block mb-1">{s.icon}</span>
@@ -1115,16 +1368,20 @@ export default function App() {
         <div>
           <p className="font-display text-gray-700 mb-3">File Terunggah Terbaru</p>
           <div className="space-y-2">
-            {UPLOADED_FILES.map((f, i) => (
+            {dbMaterials.length > 0 ? dbMaterials.slice(-3).reverse().map((f, i) => (
               <div key={i} className="bg-white rounded-2xl p-3 flex items-center gap-3 shadow-sm">
-                <div className="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center text-xl flex-shrink-0">{f.icon}</div>
+                <div className="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center text-xl flex-shrink-0">📄</div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-700 text-sm truncate">{f.name}</p>
-                  <p className="text-gray-400 text-xs">{f.bab} · {f.size}</p>
+                  <p className="font-semibold text-gray-700 text-sm truncate">{f.title}</p>
+                  <p className="text-gray-400 text-xs">{f.chapter} · {f.createdAt ? new Date(f.createdAt.seconds * 1000).toLocaleDateString() : 'Baru saja'}</p>
                 </div>
-                <span className={`text-xs font-bold px-2 py-1 rounded-full ${f.status === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{f.status}</span>
+                <span className="text-xs font-bold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">Aktif</span>
               </div>
-            ))}
+            )) : (
+              <div className="bg-white rounded-2xl p-5 text-center text-gray-400 text-sm shadow-sm border border-gray-100">
+                Belum ada materi yang diunggah.
+              </div>
+            )}
           </div>
         </div>
 
@@ -1132,32 +1389,36 @@ export default function App() {
         <div>
           <p className="font-display text-gray-700 mb-3">Progres Kelas per Bab</p>
           <div className="bg-white rounded-3xl p-4 shadow-sm space-y-3">
-            {BAB_LIST.slice(0, 4).map((b, i) => (
-              <div key={i}>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <span>{b.emoji}</span>
-                    <span className="text-gray-700 text-sm font-semibold truncate max-w-[160px]">Bab {b.id}</span>
+            {BAB_LIST.slice(0, 4).map((b, i) => {
+              const p = getClassProgress(b.id, b.interaktif.length > 0);
+              return (
+                <div key={i}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span>{b.emoji}</span>
+                      <span className="text-gray-700 text-sm font-semibold truncate max-w-[160px]">Bab {b.id}</span>
+                    </div>
+                    <span className="text-gray-500 text-xs font-bold">{p}%</span>
                   </div>
-                  <span className="text-gray-500 text-xs font-bold">{b.progress}%</span>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full bg-gradient-to-r ${b.gradient}`} style={{ width: `${p}%` }} />
+                  </div>
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className={`h-full rounded-full bg-gradient-to-r ${b.gradient}`} style={{ width: `${b.progress}%` }} />
-                </div>
-              </div>
-            ))}
-            <p className="text-gray-400 text-xs text-center">Bab 5–8 belum dimulai</p>
+              );
+            })}
+            <p className="text-gray-400 text-xs text-center mt-2">Bab 5–8 belum dimulai</p>
           </div>
         </div>
         <div className="h-2" />
       </div>
       <TeacherBottomNav />
     </div>
-  );
+    );
+  }
 
   // ── X. PENGATURAN GURU ───────────────────────────────────────────────────
   if (screen === 'pengaturanGuru') return (
-    <div className="h-screen bg-[#F0F9FF] flex flex-col overflow-hidden">
+    <div className="h-full bg-[#F0F9FF] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-sky-600 to-indigo-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center gap-3">
           <BackBtn onBack={goBack} light />
@@ -1172,7 +1433,7 @@ export default function App() {
             <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center text-3xl">👩‍🏫</div>
             <div>
               <p className="font-display text-gray-800 text-lg">Bu Sari</p>
-              <p className="text-sky-600 text-sm font-bold">Guru IPAS Kelas 4</p>
+              <p className="text-sky-600 text-sm font-bold">Guru IPAS Kelas 3</p>
             </div>
           </div>
           <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3">
@@ -1227,7 +1488,7 @@ export default function App() {
       { id: 'ppt', icon: '📊', label: 'Presentasi', ext: '.pptx, .key' },
     ];
     return (
-      <div className="h-screen bg-[#F0F9FF] flex flex-col overflow-hidden">
+      <div className="h-full bg-[#F0F9FF] flex flex-col overflow-hidden">
         <div className="bg-gradient-to-br from-sky-600 to-indigo-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
           <div className="flex items-center gap-3 mb-4">
             <BackBtn onBack={goBack} light />
@@ -1271,58 +1532,80 @@ export default function App() {
           {/* Step 1: Choose file type */}
           {uploadStep === 1 && (
             <div>
-              <p className="font-display text-gray-700 text-base mb-3">Pilih jenis file yang akan diupload</p>
-              <div className="grid grid-cols-2 gap-3">
-                {FILE_TYPES.map(ft => (
-                  <button key={ft.id} onClick={() => setUploadType(ft.id)}
-                    className={`p-5 rounded-3xl flex flex-col items-center text-center border-2 transition-all active:scale-95 ${uploadType === ft.id ? 'bg-sky-50 border-sky-400 ring-2 ring-sky-300' : 'bg-white border-transparent shadow-sm'}`}>
-                    <span className="text-4xl mb-2">{ft.icon}</span>
-                    <p className="font-bold text-gray-800 text-sm">{ft.label}</p>
-                    <p className="text-gray-400 text-xs mt-1">{ft.ext}</p>
-                  </button>
-                ))}
+              <p className="font-display text-gray-700 text-base mb-3">Pilih metode pembuatan materi</p>
+              <div className="grid grid-cols-1 gap-3">
+                <button onClick={() => { setUploadType('text'); setUploadStep(2); }}
+                  className={`p-5 rounded-3xl flex items-center text-left border-2 transition-all active:scale-95 bg-white border-transparent shadow-sm hover:border-sky-300`}>
+                  <div className="w-12 h-12 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center text-2xl mr-4 flex-shrink-0">✍️</div>
+                  <div>
+                    <p className="font-bold text-gray-800 text-base">Ketik Manual (Word-like)</p>
+                    <p className="text-gray-400 text-xs mt-1">Ketik langsung dengan editor teks berwarna.</p>
+                  </div>
+                </button>
+                <button onClick={() => { setUploadType('file'); setUploadStep(2); }}
+                  className={`p-5 rounded-3xl flex items-center text-left border-2 transition-all active:scale-95 bg-white border-transparent shadow-sm hover:border-sky-300`}>
+                  <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl mr-4 flex-shrink-0">📤</div>
+                  <div>
+                    <p className="font-bold text-gray-800 text-base">Upload File (TXT, PDF, Gambar)</p>
+                    <p className="text-gray-400 text-xs mt-1">Unggah file materi dari perangkat Anda.</p>
+                  </div>
+                </button>
               </div>
             </div>
           )}
 
-          {/* Step 2: Upload zone */}
-          {uploadStep === 2 && (
+          {/* Step 2: Content zone */}
+          {uploadStep === 2 && uploadType === 'text' && (
             <div>
-              <p className="font-display text-gray-700 text-base mb-3">Upload file {uploadType === 'pdf' ? 'PDF/Dokumen' : uploadType === 'video' ? 'Video' : uploadType === 'image' ? 'Gambar' : 'Presentasi'}</p>
+              <p className="font-display text-gray-700 text-base mb-1">Ketik & Format Materi</p>
+              <p className="text-gray-400 text-xs mb-3">Kamu bisa menggunakan opsi bold, italic, dan mengatur font seperti di Word.</p>
+              <SimpleRichTextEditor 
+                value={uploadContent} 
+                onChange={val => { setUploadContent(val); setUploadDone(val.replace(/<[^>]*>?/gm, '').trim().length > 10); }}
+              />
+            </div>
+          )}
 
+          {uploadStep === 2 && uploadType === 'file' && (
+            <div>
+              <p className="font-display text-gray-700 text-base mb-3">Upload File Materi</p>
               {!uploadDone ? (
-                <div>
-                  <button onClick={simulateUpload}
-                    className="w-full border-2 border-dashed border-sky-300 rounded-3xl p-8 flex flex-col items-center bg-sky-50 hover:bg-sky-100 transition-colors active:scale-95">
-                    <span className="text-5xl mb-3">
-                      {uploadType === 'pdf' ? '📄' : uploadType === 'video' ? '🎬' : uploadType === 'image' ? '🖼️' : '📊'}
-                    </span>
-                    <p className="font-bold text-sky-700 text-base mb-1">Ketuk untuk pilih file</p>
-                    <p className="text-sky-500 text-sm">atau seret file ke sini</p>
-                    <p className="text-gray-400 text-xs mt-2">Maks 100 MB</p>
-                  </button>
-
-                  {uploadProgress > 0 && uploadProgress < 100 && (
-                    <div className="mt-4 bg-white rounded-2xl p-4 shadow-sm">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-2xl">⏳</span>
-                        <div className="flex-1">
-                          <p className="font-bold text-gray-700 text-sm">Mengupload...</p>
-                          <p className="text-gray-400 text-xs">Materi_IPAS_{uploadType}.{uploadType === 'pdf' ? 'pdf' : uploadType === 'video' ? 'mp4' : 'png'}</p>
-                        </div>
-                        <span className="text-sky-600 font-black">{uploadProgress}%</span>
-                      </div>
-                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-sky-500 to-blue-600 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <label className="w-full flex flex-col items-center justify-center px-5 py-10 rounded-[2rem] bg-white border-2 border-dashed border-sky-300 hover:border-sky-500 cursor-pointer shadow-sm transition-all group">
+                  <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">📄</span>
+                  <p className="font-bold text-gray-700 text-sm mb-1">Klik untuk memilih file</p>
+                  <p className="text-gray-400 text-xs text-center">Mendukung file TXT, Gambar, PDF, Word</p>
+                  <input type="file" className="hidden" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    
+                    if (file.type.includes('text') || file.name.endsWith('.txt')) {
+                      const reader = new FileReader();
+                      reader.onload = (e) => { 
+                        const txt = e.target?.result as string;
+                        setUploadContent(txt.replace(/\n/g, '<br/>')); 
+                        setUploadType('text'); // Beralih ke editor teks!
+                        setUploadDone(true);
+                      };
+                      reader.readAsText(file);
+                    } else {
+                      const html = `<div class="p-4 bg-sky-50 rounded-xl text-center border-2 border-dashed border-sky-300 my-4 max-w-sm mx-auto shadow-sm">
+                        <span class="text-4xl block mb-2">📎</span>
+                        <p class="font-bold text-sky-800 text-sm">File Materi Terlampir</p>
+                        <p class="text-xs text-sky-600 mt-1">${file.name} (${(file.size/1024).toFixed(1)} KB)</p>
+                        <button class="mt-3 px-4 py-2.5 bg-sky-600 text-white rounded-lg text-xs font-bold w-full shadow-md active:scale-95 transition-transform">Buka File Terlampir</button>
+                      </div>`;
+                      setUploadContent(html);
+                      setUploadDone(true);
+                    }
+                  }} />
+                </label>
               ) : (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 flex flex-col items-center text-center">
-                  <span className="text-5xl mb-3 animate-pop block">✅</span>
-                  <p className="font-display text-emerald-700 text-xl mb-1">Upload Berhasil!</p>
-                  <p className="text-emerald-600 text-sm">File telah berhasil diunggah ke server.</p>
+                <div className="mt-4 p-5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-4 shadow-sm">
+                  <div className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0 shadow-sm">✓</div>
+                  <div>
+                    <p className="font-bold text-emerald-800 text-base mb-0.5">File berhasil disiapkan!</p>
+                    <p className="text-emerald-600 text-xs">Silakan lanjutkan ke konfigurasi materi.</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -1368,28 +1651,50 @@ export default function App() {
 
         {/* Bottom action */}
         <div className="px-5 pb-8 pt-3 flex-shrink-0 space-y-2">
-          {uploadStep < 3 ? (
+          {uploadStep < 3 && uploadStep !== 1 ? (
             <button
               onClick={() => {
                 if (uploadStep === 0 && !uploadChapter) return;
-                if (uploadStep === 1 && !uploadType) return;
                 if (uploadStep === 2 && !uploadDone) return;
                 setUploadStep(s => s + 1);
               }}
               className={`w-full py-4 rounded-2xl font-display text-base transition-all ${
-                (uploadStep === 0 && uploadChapter) || (uploadStep === 1 && uploadType) || (uploadStep === 2 && uploadDone)
+                (uploadStep === 0 && uploadChapter) || (uploadStep === 2 && uploadDone)
                   ? 'bg-sky-600 text-white shadow-lg shadow-sky-200 active:scale-95'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}>
               Lanjut →
             </button>
-          ) : (
-            <button onClick={() => setScreens(['teacherDash'])}
-              disabled={!uploadTitle}
-              className={`w-full py-4 rounded-2xl font-display text-base transition-all ${uploadTitle ? 'bg-emerald-600 text-white shadow-lg active:scale-95' : 'bg-gray-200 text-gray-400'}`}>
-              Publikasikan ke Siswa 🚀
+          ) : uploadStep === 3 ? (
+            <button onClick={async () => {
+                if (!uploadTitle || !uploadContent) return;
+                setIsUploadingDB(true);
+                try {
+                  await addDoc(collection(db, 'materials'), {
+                    chapter: uploadChapter, // e.g. "Bab 1"
+                    title: uploadTitle,
+                    desc: uploadDesc,
+                    content: uploadContent,
+                    createdAt: serverTimestamp()
+                  });
+                  setUploadStep(0);
+                  setUploadChapter('');
+                  setUploadTitle('');
+                  setUploadDesc('');
+                  setUploadContent('');
+                  setUploadDone(false);
+                  setScreens(['teacherDash']);
+                } catch (e) {
+                  console.error("Gagal menyimpan ke Firestore", e);
+                  alert("Gagal menyimpan materi!");
+                }
+                setIsUploadingDB(false);
+              }}
+              disabled={!uploadTitle || isUploadingDB}
+              className={`w-full py-4 rounded-2xl font-display text-base transition-all ${uploadTitle && !isUploadingDB ? 'bg-emerald-600 text-white shadow-lg active:scale-95' : 'bg-gray-200 text-gray-400'}`}>
+              {isUploadingDB ? 'Menyimpan...' : 'Publikasikan ke Siswa 🚀'}
             </button>
-          )}
+          ) : null}
         </div>
       </div>
     );
@@ -1397,7 +1702,7 @@ export default function App() {
 
   // ── 4. BUAT INTERAKTIF ─────────────────────────────────────────────────────
   if (screen === 'buatInteraktif') return (
-    <div className="h-screen bg-[#F0F9FF] flex flex-col overflow-hidden">
+    <div className="h-full bg-[#F0F9FF] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-violet-600 to-purple-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center gap-3">
           <BackBtn onBack={goBack} light />
@@ -1582,14 +1887,48 @@ export default function App() {
 
   // ── 5. PROGRESS SISWA ──────────────────────────────────────────────────────
   if (screen === 'progressSiswa') {
-    const siswa = [
-      { name: 'Andi', avatar: '👦', bab1: 90, bab2: 60, bab3: 0, xp: 380, aktif: '1j lalu' },
-      { name: 'Dina', avatar: '👧', bab1: 100, bab2: 80, bab3: 40, xp: 520, aktif: '30m lalu' },
-      { name: 'Bagas', avatar: '🧒', bab1: 70, bab2: 0, bab3: 0, xp: 210, aktif: '2h lalu' },
-      { name: 'Siti', avatar: '🧑', bab1: 100, bab2: 100, bab3: 70, xp: 680, aktif: '5m lalu' },
-    ];
+    const students = dbUsers.filter(u => u.id !== auth.currentUser?.uid);
+    
+    const getStudentProgress = (u: any, babId: number, hasInteraktif: boolean) => {
+      const completed = u.completedModules?.[babId] || [];
+      let count = 0;
+      if (completed.includes('materi')) count++;
+      if (completed.includes('interaktif')) count++;
+      if (completed.includes('kuis')) count++;
+      if (completed.includes('proyek')) count++;
+      return Math.round((count / (hasInteraktif ? 4 : 3)) * 100);
+    };
+
+    let totalKuis = 0;
+    const mappedStudents = students.map(s => {
+      const babProgs = BAB_LIST.slice(0, 3).map(b => getStudentProgress(s, b.id, b.interaktif.length > 0));
+      Object.values(s.completedModules || {}).forEach((arr: any) => {
+        if (arr.includes('kuis')) totalKuis++;
+      });
+      const avg = Math.round(babProgs.reduce((a, v) => a + v, 0) / 3);
+      return { id: s.id, name: s.displayName || `Siswa ${s.id.slice(0,4)}`, avatar: '🧑‍🎓', babProgs, avg, xp: s.xp || 0 };
+    });
+
+    const classRataRata = students.length > 0 ? Math.round(mappedStudents.reduce((a, s) => a + s.avg, 0) / students.length) : 0;
+    
+    const getBabClassProgress = (babId: number, hasInteraktif: boolean) => {
+      if (students.length === 0) return 0;
+      let sum = 0;
+      students.forEach(s => { sum += getStudentProgress(s, babId, hasInteraktif); });
+      return Math.round(sum / students.length);
+    };
+
+    let weakestBab = 'Belum ada data';
+    let lowestP = 101;
+    if (students.length > 0) {
+      BAB_LIST.slice(0, 4).forEach(b => {
+        const p = getBabClassProgress(b.id, b.interaktif.length > 0);
+        if (p < lowestP) { lowestP = p; weakestBab = `Bab ${b.id} — ${b.topics[0]} (${p}% rata-rata)`; }
+      });
+    }
+
     return (
-      <div className="h-screen bg-[#F0F9FF] flex flex-col overflow-hidden">
+      <div className="h-full bg-[#F0F9FF] flex flex-col overflow-hidden">
         <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
           <div className="flex items-center gap-3 mb-4">
             <BackBtn onBack={goBack} light />
@@ -1597,9 +1936,9 @@ export default function App() {
           </div>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Rata-rata', value: '72%', icon: '📈' },
-              { label: 'Aktif Hari Ini', value: '24', icon: '⚡' },
-              { label: 'Kuis Selesai', value: '86', icon: '✅' },
+              { label: 'Rata-rata', value: `${classRataRata}%`, icon: '📈' },
+              { label: 'Total Siswa', value: students.length, icon: '👥' },
+              { label: 'Kuis Selesai', value: totalKuis, icon: '✅' },
             ].map((s, i) => (
               <div key={i} className="bg-white/20 rounded-2xl p-3 text-center">
                 <p className="text-lg mb-0.5">{s.icon}</p>
@@ -1615,20 +1954,22 @@ export default function App() {
           <div className="bg-white rounded-3xl p-4 shadow-sm">
             <p className="font-display text-gray-700 mb-3">Penyelesaian per Bab</p>
             <div className="space-y-3">
-              {BAB_LIST.slice(0, 4).map(b => (
+              {BAB_LIST.slice(0, 4).map(b => {
+                const p = getBabClassProgress(b.id, b.interaktif.length > 0);
+                return (
                 <div key={b.id} className="flex items-center gap-3">
                   <span className="text-lg w-7 text-center">{b.emoji}</span>
                   <div className="flex-1">
                     <div className="flex justify-between mb-1">
                       <span className="text-gray-600 text-xs font-semibold">Bab {b.id}</span>
-                      <span className="text-gray-500 text-xs">{b.progress}% kelas selesai</span>
+                      <span className="text-gray-500 text-xs">{p}% kelas selesai</span>
                     </div>
                     <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full bg-gradient-to-r ${b.gradient}`} style={{ width: `${b.progress}%` }} />
+                      <div className={`h-full rounded-full bg-gradient-to-r ${b.gradient}`} style={{ width: `${p}%` }} />
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
 
@@ -1636,31 +1977,33 @@ export default function App() {
           <div>
             <p className="font-display text-gray-700 mb-3">Daftar Siswa</p>
             <div className="space-y-2">
-              {siswa.map((s, i) => (
+              {mappedStudents.length > 0 ? mappedStudents.map((s, i) => (
                 <div key={i} className="bg-white rounded-2xl p-4 shadow-sm">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-2xl">{s.avatar}</div>
                     <div className="flex-1">
                       <p className="font-bold text-gray-800 text-sm">{s.name}</p>
-                      <p className="text-gray-400 text-xs">Aktif {s.aktif} · {s.xp} XP</p>
+                      <p className="text-gray-400 text-xs">Aktif · {s.xp} XP</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-emerald-600 font-black text-sm">{Math.round((s.bab1 + s.bab2 + s.bab3) / 3)}%</p>
+                      <p className="text-emerald-600 font-black text-sm">{s.avg}%</p>
                       <p className="text-gray-400 text-xs">rata-rata</p>
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    {[s.bab1, s.bab2, s.bab3].map((v, j) => (
+                    {s.babProgs.map((v, j) => (
                       <div key={j} className="flex-1">
-                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden relative group">
                           <div className={`h-full rounded-full ${v > 0 ? 'bg-emerald-400' : 'bg-gray-200'}`} style={{ width: `${v}%` }} />
                         </div>
-                        <p className="text-gray-400 text-[9px] text-center mt-0.5">Bab {j + 1}</p>
+                        <p className="text-gray-400 text-[9px] text-center mt-0.5">B{j + 1}</p>
                       </div>
                     ))}
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center p-4 text-gray-400 text-sm">Belum ada siswa terdaftar.</div>
+              )}
             </div>
           </div>
 
@@ -1668,12 +2011,14 @@ export default function App() {
           <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100">
             <p className="font-display text-amber-700 mb-2">⚠️ Materi yang Perlu Perhatian</p>
             <div className="space-y-2">
-              {['Bab 2 — Wujud Zat (42% selesai)', 'Bab 3 — Gaya (0% selesai)', 'Kuis Fotosintesis (rata-rata 58%)'].map((w, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
-                  <span className="text-amber-700 text-sm">{w}</span>
-                </div>
-              ))}
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+                <span className="text-amber-700 text-sm font-bold">{weakestBab}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+                <span className="text-amber-700 text-sm">Beberapa siswa belum mengerjakan kuis.</span>
+              </div>
             </div>
           </div>
           <div className="h-2" />
@@ -1684,8 +2029,62 @@ export default function App() {
   }
 
   // ── 6. KELOLA BAB ──────────────────────────────────────────────────────────
-  if (screen === 'kelolaBab') return (
-    <div className="h-screen bg-[#F0F9FF] flex flex-col overflow-hidden">
+  if (screen === 'kelolaBab') {
+    const students = dbUsers.filter(u => u.id !== auth.currentUser?.uid);
+    const getStudentProgress = (u: any, babId: number, hasInteraktif: boolean) => {
+      const completed = u.completedModules?.[babId] || [];
+      let count = 0;
+      if (completed.includes('materi')) count++;
+      if (completed.includes('interaktif')) count++;
+      if (completed.includes('kuis')) count++;
+      if (completed.includes('proyek')) count++;
+      return Math.round((count / (hasInteraktif ? 4 : 3)) * 100);
+    };
+
+    const getBabClassProgress = (babId: number, hasInteraktif: boolean) => {
+      if (students.length === 0) return 0;
+      let sum = 0;
+      students.forEach(s => { sum += getStudentProgress(s, babId, hasInteraktif); });
+      return Math.round(sum / students.length);
+    };
+
+    const [localBabs, setLocalBabs] = useState([...BAB_LIST]);
+
+    const moveUp = (idx: number) => {
+      if (idx === 0) return;
+      const newBabs = [...localBabs];
+      const temp = newBabs[idx];
+      newBabs[idx] = newBabs[idx-1];
+      newBabs[idx-1] = temp;
+      BAB_LIST.length = 0;
+      BAB_LIST.push(...newBabs);
+      setLocalBabs(newBabs);
+    };
+
+    const moveDown = (idx: number) => {
+      if (idx === localBabs.length - 1) return;
+      const newBabs = [...localBabs];
+      const temp = newBabs[idx];
+      newBabs[idx] = newBabs[idx+1];
+      newBabs[idx+1] = temp;
+      BAB_LIST.length = 0;
+      BAB_LIST.push(...newBabs);
+      setLocalBabs(newBabs);
+    };
+
+    const handleEdit = (idx: number) => {
+      const newJudul = prompt("Ubah Judul Bab:", localBabs[idx].judul);
+      if (newJudul && newJudul.trim() !== '') {
+        const newBabs = [...localBabs];
+        newBabs[idx].judul = newJudul;
+        BAB_LIST.length = 0;
+        BAB_LIST.push(...newBabs);
+        setLocalBabs(newBabs);
+      }
+    };
+
+    return (
+    <div className="h-full bg-[#F0F9FF] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-amber-500 to-orange-600 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center gap-3">
           <BackBtn onBack={goBack} light />
@@ -1693,42 +2092,56 @@ export default function App() {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
-        {BAB_LIST.map(b => (
-          <div key={b.id} className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-3">
-            <span className="text-gray-300 text-xl cursor-grab">⋮⋮</span>
+        {localBabs.map((b, idx) => {
+          const classProgress = getBabClassProgress(b.id, b.interaktif.length > 0);
+          const materialsCount = dbMaterials.filter(m => m.chapter === `Bab ${b.id}`).length;
+          
+          return (
+          <div key={b.id} className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-3 border border-gray-100">
+            <div className="flex flex-col gap-1 text-gray-300">
+              <button onClick={() => moveUp(idx)} disabled={idx === 0} className={`text-xl ${idx === 0 ? 'opacity-30' : 'hover:text-amber-500 active:scale-95'}`}>▲</button>
+              <button onClick={() => moveDown(idx)} disabled={idx === localBabs.length - 1} className={`text-xl ${idx === localBabs.length - 1 ? 'opacity-30' : 'hover:text-amber-500 active:scale-95'}`}>▼</button>
+            </div>
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${b.gradient} flex items-center justify-center text-xl flex-shrink-0`}>{b.emoji}</div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-gray-800 text-sm">Bab {b.id}</p>
               <p className="text-gray-400 text-xs truncate">{b.judul}</p>
-              <p className="text-gray-400 text-xs">{b.materi.length + b.interaktif.length} media · {b.progress}%</p>
+              <p className="text-gray-400 text-[10px] mt-0.5">{materialsCount} Materi · {b.interaktif.length > 0 ? '1' : '0'} Interaktif</p>
             </div>
             <div className="flex flex-col gap-1 items-end">
-              <span className={`text-xs px-2 py-1 rounded-full font-bold ${b.progress > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-                {b.progress > 0 ? 'Aktif' : 'Belum dimulai'}
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${classProgress > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                {classProgress > 0 ? `Progres ${classProgress}%` : 'Belum dimulai'}
               </span>
-              <button className="text-xs text-sky-600 font-bold">Edit</button>
+              <button onClick={() => handleEdit(idx)} className="text-xs text-sky-600 font-bold hover:text-sky-700 active:scale-95 bg-sky-50 px-2.5 py-1.5 rounded-lg mt-1">Edit Judul</button>
             </div>
           </div>
-        ))}
+        )})}
         <div className="h-2" />
       </div>
       <TeacherBottomNav />
     </div>
-  );
+    );
+  }
 
   // ── 7. STUDENT HOME ────────────────────────────────────────────────────────
   if (screen === 'studentHome') return (
-    <div className="h-screen bg-[#F0FDF4] flex flex-col overflow-hidden">
+    <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-8 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-sm">🧑‍🎓</div>
             <div>
               <p className="text-emerald-100 text-xs font-semibold">Halo,</p>
-              <p className="text-white font-display text-xl">Andi! 👋</p>
+              <p className="text-white font-display text-xl">{auth.currentUser?.displayName || 'Siswa'}! 👋</p>
             </div>
           </div>
-          <button onClick={() => setScreens(['roleSelect'])} className="bg-white/20 rounded-xl px-3 py-1.5 text-white text-xs font-bold backdrop-blur-sm active:scale-95 transition-transform">Keluar</button>
+          <div className="flex items-center gap-2">
+            <div className="bg-white/20 rounded-xl px-2 py-1.5 flex items-center gap-1 backdrop-blur-sm">
+              <span className="text-yellow-300 text-xs">⭐</span>
+              <span className="text-white font-bold text-xs">{userProfile.xp} XP</span>
+            </div>
+            <button onClick={() => { signOut(auth); setScreens(['roleSelect']); }} className="bg-white/20 rounded-xl px-3 py-1.5 text-white text-xs font-bold backdrop-blur-sm active:scale-95 transition-transform">Keluar</button>
+          </div>
         </div>
       </div>
 
@@ -1795,9 +2208,9 @@ export default function App() {
                 <p className="text-gray-400 text-xs font-semibold">Bab {b.id}</p>
                 <p className="font-bold text-gray-800 text-sm leading-tight mb-2 line-clamp-2">{b.judul}</p>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className={`h-full bg-gradient-to-r ${b.gradient} rounded-full`} style={{ width: `${b.progress}%` }} />
+                  <div className={`h-full bg-gradient-to-r ${b.gradient} rounded-full`} style={{ width: `${getBabProgress(b.id, b.interaktif.length > 0)}%` }} />
                 </div>
-                <p className="text-gray-400 text-xs mt-1">{b.progress}%</p>
+                <p className="text-gray-400 text-xs mt-1">{getBabProgress(b.id, b.interaktif.length > 0)}%</p>
               </button>
             ))}
           </div>
@@ -1810,14 +2223,15 @@ export default function App() {
 
   // ── 8. DAFTAR BAB ──────────────────────────────────────────────────────────
   if (screen === 'daftarBab') return (
-    <div className="h-screen bg-[#F0FDF4] flex flex-col overflow-hidden">
+    <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-5 rounded-b-[2.5rem] flex-shrink-0">
-        <p className="text-emerald-100 text-xs font-semibold mb-1">IPAS Kelas 4 · Kurikulum Merdeka</p>
+        <p className="text-emerald-100 text-xs font-semibold mb-1">IPAS Kelas 3 · Kurikulum Merdeka</p>
         <p className="text-white font-display text-2xl">8 Bab Pembelajaran 🌿</p>
       </div>
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {BAB_LIST.map((b, i) => {
           const locked = i > 1;
+          const actualProgress = getBabProgress(b.id, b.interaktif.length > 0);
           return (
             <button key={b.id} onClick={() => { if (!locked) { setCurrentBabIdx(i); navigate('detailBab'); } }}
               className={`w-full rounded-3xl overflow-hidden shadow-sm active:scale-95 transition-all ${locked ? 'opacity-50' : ''}`}>
@@ -1835,9 +2249,9 @@ export default function App() {
               {!locked && (
                 <div className="bg-white px-4 py-2.5 flex items-center gap-2">
                   <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full bg-gradient-to-r ${b.gradient} rounded-full`} style={{ width: `${b.progress}%` }} />
+                    <div className={`h-full bg-gradient-to-r ${b.gradient} rounded-full`} style={{ width: `${actualProgress}%` }} />
                   </div>
-                  <span className="text-gray-500 text-xs font-bold">{b.progress}%</span>
+                  <span className="text-gray-500 text-xs font-bold">{actualProgress}%</span>
                 </div>
               )}
             </button>
@@ -1850,163 +2264,238 @@ export default function App() {
   );
 
   // ── 9. DETAIL BAB ──────────────────────────────────────────────────────────
-  if (screen === 'detailBab') return (
-    <div className="h-screen bg-[#F0FDF4] flex flex-col overflow-hidden">
-      <div className={`bg-gradient-to-br ${bab.gradient} px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0`}>
-        <div className="flex items-center gap-3 mb-3">
-          <BackBtn onBack={goBack} light />
-          <div>
-            <p className="text-white/70 text-xs">IPAS Kelas 4 · Bab {bab.id}</p>
-            <p className="text-white font-display text-lg leading-tight">{bab.judul}</p>
+  if (screen === 'detailBab') {
+    const actualProgress = getBabProgress(bab.id, bab.interaktif.length > 0);
+    const completed = userProfile.completedModules[bab.id] || [];
+    const materiDone = completed.includes('materi');
+    const interaktifDone = completed.includes('interaktif');
+    const kuisDone = completed.includes('kuis');
+    const proyekDone = completed.includes('proyek');
+
+    return (
+    <div className="h-full bg-slate-50 flex flex-col overflow-hidden font-sans">
+      <div className={`relative bg-gradient-to-r ${bab.gradient} px-5 pt-10 pb-4 shadow-md flex-shrink-0`}>
+        <div className="flex items-center gap-3">
+          <button onClick={goBack} className="w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl flex items-center justify-center text-white transition-colors active:scale-95 flex-shrink-0">
+            <span className="font-bold text-lg">←</span>
+          </button>
+          <div className="flex-1 min-w-0">
+            <p className="text-white/80 text-[10px] font-bold tracking-widest uppercase mb-0.5">Bab {bab.id}</p>
+            <h2 className="text-white font-display text-lg leading-tight truncate">{bab.judul}</h2>
+          </div>
+          <div className="w-12 h-12 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl flex items-center justify-center text-2xl shadow-sm flex-shrink-0">
+            {bab.emoji}
           </div>
         </div>
-        <ProgressBar pct={bab.progress} gradient="from-yellow-400 to-orange-400" h="h-3" />
-        <div className="flex justify-between mt-1">
-          <span className="text-white/70 text-xs">{bab.done} dari {bab.total} topik selesai</span>
-          <span className="text-white font-bold text-xs">{bab.progress}%</span>
+
+        <div className="mt-4 flex items-center gap-3">
+          <div className="flex-1 h-2 bg-black/20 rounded-full overflow-hidden">
+            <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${actualProgress}%` }} />
+          </div>
+          <span className="text-white font-bold text-xs">{actualProgress}%</span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-        {/* Capaian Pembelajaran */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border-l-4 border-emerald-400">
-          <p className="font-bold text-emerald-700 text-xs mb-1">📋 CAPAIAN PEMBELAJARAN</p>
-          <p className="text-gray-600 text-sm leading-relaxed">{bab.cp}</p>
-        </div>
+      <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6 relative">
+        <div className="absolute left-9 top-8 bottom-12 w-0.5 bg-slate-200 z-0 rounded-full" />
 
-        {/* Topik dalam bab */}
-        <div>
-          <p className="font-display text-gray-700 mb-3">Topik dalam Bab Ini</p>
-          <div className="space-y-2">
-            {bab.topics.map((t, i) => (
-              <div key={i} className={`flex items-center gap-3 p-3 rounded-2xl ${i < bab.done ? 'bg-emerald-50' : i === bab.done ? 'bg-white border-2 border-emerald-400 shadow-sm' : 'bg-gray-50 opacity-60'}`}>
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0 ${i < bab.done ? 'bg-emerald-200 text-emerald-700' : i === bab.done ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                  {i < bab.done ? '✓' : i + 1}
-                </div>
-                <span className={`text-sm font-semibold ${i === bab.done ? 'text-emerald-800' : 'text-gray-600'}`}>{t}</span>
-                {i === bab.done && <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-auto" />}
-              </div>
-            ))}
+        <div className="relative z-10 flex gap-4">
+          <div className={`w-8 h-8 rounded-full ${materiDone ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'} flex items-center justify-center font-bold shadow-md flex-shrink-0 mt-1 border-4 border-slate-50`}>
+            {materiDone ? '✓' : '1'}
+          </div>
+          <div className={`flex-1 bg-white rounded-2xl p-4 shadow-sm border ${materiDone ? 'border-emerald-200' : 'border-slate-100'} hover:shadow-md transition-all active:scale-95`}
+               onClick={() => {
+                 const m = dbMaterials.find(x => x.chapter === `Bab ${bab.id}`) || { title: bab.materi[0]?.title || 'Materi Belajar', content: 'Materi belum diunggah oleh guru.' };
+                 setActiveMaterial(m);
+                 navigate('bacaMateri');
+               }}>
+             <h3 className="font-bold text-slate-800 text-base mb-1">Pelajari Materi Bab</h3>
+             <p className="text-slate-500 text-xs mb-3">Tujuan, ringkasan, dan konsep inti.</p>
+             <button className={`${materiDone ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-600'} px-4 py-2.5 rounded-xl text-xs font-bold w-full text-left flex justify-between items-center`}>
+               {materiDone ? 'Baca Ulang' : 'Mulai Membaca'} <span>→</span>
+             </button>
           </div>
         </div>
 
-        {/* Materi dari Guru */}
-        {bab.materi.length > 0 && (
-          <div>
-            <p className="font-display text-gray-700 mb-3">Materi dari Guru 📁</p>
-            <div className="space-y-2">
-              {bab.materi.map((m, i) => (
-                <button key={i} onClick={() => navigate(m.type === 'pdf' ? 'bacaMateri' : 'bacaMateri')}
-                  className="w-full bg-white rounded-2xl p-3.5 flex items-center gap-3 shadow-sm active:scale-95 transition-transform">
-                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-xl flex-shrink-0">{m.icon}</div>
-                  <div className="flex-1 text-left">
-                    <p className="font-bold text-gray-800 text-sm">{m.title}</p>
-                    <p className="text-gray-400 text-xs">Bu Sari · {m.tanggal}</p>
-                  </div>
-                  <span className="text-emerald-500">→</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Media Interaktif */}
         {bab.interaktif.length > 0 && (
-          <div>
-            <p className="font-display text-gray-700 mb-3">Media Interaktif 🎮</p>
-            <div className="space-y-2">
-              {bab.interaktif.map((m, i) => (
-                <button key={i} onClick={() => { if (m.screen === 'dragDrop') resetDrag(); if (m.screen === 'flipCards') setFlipped(new Set()); navigate(m.screen); }}
-                  className="w-full bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center gap-3 active:scale-95 transition-transform">
-                  <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-xl flex-shrink-0">{m.icon}</div>
-                  <div className="flex-1 text-left">
-                    <p className="font-bold text-emerald-800 text-sm">{m.title}</p>
-                    <p className="text-emerald-500 text-xs">Interaktif · Kuis + XP</p>
-                  </div>
-                  <span className="text-emerald-500 font-bold">▶</span>
-                </button>
-              ))}
+          <div className="relative z-10 flex gap-4">
+            <div className={`w-8 h-8 rounded-full ${interaktifDone ? 'bg-amber-400 text-white' : 'bg-slate-200 text-slate-500'} flex items-center justify-center font-bold shadow-md flex-shrink-0 mt-1 border-4 border-slate-50`}>
+              {interaktifDone ? '✓' : '2'}
+            </div>
+            <div className={`flex-1 bg-white rounded-2xl p-4 shadow-sm border ${interaktifDone ? 'border-amber-200' : 'border-slate-100'} hover:shadow-md transition-all active:scale-95`}
+                 onClick={() => {
+                   const m = bab.interaktif[0];
+                   if (m.screen === 'dragDrop') resetDrag();
+                   if (m.screen === 'flipCards') setFlipped(new Set());
+                   navigate(m.screen);
+                 }}>
+               <h3 className="font-bold text-slate-800 text-base mb-1">Misi Interaktif ✨</h3>
+               <p className="text-slate-500 text-xs mb-3">{bab.interaktif[0].title}</p>
+               <button className={`${interaktifDone ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-600'} px-4 py-2.5 rounded-xl text-xs font-bold w-full text-left flex justify-between items-center`}>
+                 {interaktifDone ? 'Mainkan Ulang' : 'Mainkan Sekarang'} <span>→</span>
+               </button>
             </div>
           </div>
         )}
 
-        {/* Kuis & Proyek */}
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => { resetQuiz(); navigate('quiz'); }}
-            className="bg-white rounded-2xl p-4 flex flex-col items-center text-center shadow-sm active:scale-95 transition-transform">
-            <span className="text-3xl mb-2">📝</span>
-            <p className="font-bold text-gray-700 text-sm">Kuis Bab {bab.id}</p>
-            <p className="text-gray-400 text-xs">5 soal · +50 XP</p>
-          </button>
-          <button onClick={() => navigate('proyekP5')}
-            className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-4 flex flex-col items-center text-center active:scale-95 transition-transform">
-            <span className="text-3xl mb-2">🌱</span>
-            <p className="font-bold text-white text-sm">Proyek P5</p>
-            <p className="text-amber-100 text-xs">Pelajar Pancasila</p>
-          </button>
+        {/* Node 3: Latihan Soal */}
+        <div className="relative z-10 flex gap-4">
+          <div className={`w-8 h-8 rounded-full ${kuisDone ? 'bg-sky-500 text-white' : 'bg-slate-200 text-slate-500'} flex items-center justify-center font-bold shadow-md flex-shrink-0 mt-1 border-4 border-slate-50`}>
+            {kuisDone ? '✓' : (bab.interaktif.length > 0 ? '3' : '2')}
+          </div>
+          <div className={`flex-1 bg-white rounded-2xl p-4 shadow-sm border ${kuisDone ? 'border-sky-200' : 'border-slate-100'} hover:shadow-md transition-all active:scale-95`}
+               onClick={() => { resetQuiz(); navigate('quiz'); }}>
+             <h3 className="font-bold text-slate-800 text-base mb-1">Kerjakan Latihan Soal</h3>
+             <p className="text-slate-500 text-xs mb-3">Soal Pilihan Ganda untuk menguji pemahamanmu.</p>
+             <button className={`${kuisDone ? 'bg-sky-50 text-sky-700' : 'bg-slate-50 text-slate-600'} px-4 py-2.5 rounded-xl text-xs font-bold w-full text-left flex justify-between items-center`}>
+               {kuisDone ? 'Coba Lagi' : 'Mulai Kuis'} <span>📝</span>
+             </button>
+          </div>
         </div>
-        <div className="h-2" />
+
+        {/* Node 4: Skor & Pembahasan (Proyek) */}
+        <div className="relative z-10 flex gap-4">
+          <div className={`w-8 h-8 rounded-full ${proyekDone ? 'bg-orange-400 text-white' : 'bg-slate-200 text-slate-500'} flex items-center justify-center font-bold shadow-md flex-shrink-0 mt-1 border-4 border-slate-50`}>
+            {proyekDone ? '✓' : (bab.interaktif.length > 0 ? '4' : '3')}
+          </div>
+          <div className={`flex-1 bg-white rounded-2xl p-4 shadow-sm border ${proyekDone ? 'border-orange-200' : 'border-slate-100'} hover:shadow-md transition-all active:scale-95`}
+               onClick={() => { markCompleted(bab.id, 'proyek'); navigate('proyekP5'); }}>
+             <h3 className="font-bold text-slate-800 text-base mb-1">Aksi Nyata (Proyek)</h3>
+             <p className="text-slate-500 text-xs mb-3">Terapkan ilmumu di dunia nyata!</p>
+             <button className={`${proyekDone ? 'bg-orange-50 text-orange-700' : 'bg-slate-50 text-slate-600'} px-4 py-2.5 rounded-xl text-xs font-bold w-full text-left flex justify-between items-center`}>
+               {proyekDone ? 'Lihat Proyek Lagi' : 'Lihat Proyek'} <span>🌱</span>
+             </button>
+          </div>
+        </div>
+
+        <div className="h-6" />
       </div>
     </div>
-  );
+    );
+  }
 
   // ── 10. BACA MATERI (PDF Viewer) ───────────────────────────────────────────
+  // --- SMART TEXT PARSER ---
+  const renderSmartMateri = (content: string) => {
+    const blocks = content.split('\\n\\n').filter(b => b.trim());
+    return (
+      <div className="space-y-5 mb-6">
+        {blocks.map((block, idx) => {
+          const lines = block.split('\\n').map(l => l.trim()).filter(Boolean);
+          if (lines.length === 0) return null;
+          const firstLine = lines[0].toLowerCase();
+
+          if (firstLine.includes('tujuan') || firstLine.includes('kesimpulan') || firstLine.includes('penting') || firstLine.includes('ringkasan')) {
+            return (
+              <div key={idx} className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex gap-3 shadow-sm">
+                <span className="text-emerald-500 text-lg flex-shrink-0">📌</span>
+                <div>
+                  {lines.map((l, i) => (
+                    <p key={i} className={`text-emerald-800 ${i === 0 ? 'font-bold mb-1 uppercase tracking-wide text-xs' : 'text-xs leading-relaxed'}`}>{l.replace(/^[-*]\\s*/, '')}</p>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+
+          if (lines.length > 1 && lines.every(l => l.startsWith('-') || l.startsWith('*') || /^\\d+\\./.test(l))) {
+            return (
+              <div key={idx} className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm space-y-2">
+                {lines.map((l, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="text-emerald-500 mt-0.5 font-bold">✓</span>
+                    <p className="text-gray-600 text-sm leading-relaxed">{l.replace(/^[-*]\\s*/, '').replace(/^\\d+\\.\\s*/, '')}</p>
+                  </div>
+                ))}
+              </div>
+            );
+          }
+
+          if (lines.length === 1 && block.length < 60 && !['.', '?', '!'].includes(block.slice(-1))) {
+            return (
+              <h3 key={idx} className="font-bold text-gray-800 text-base mt-4 border-b border-gray-100 pb-2">
+                {block}
+              </h3>
+            );
+          }
+
+          return (
+            <div key={idx} className="text-gray-700 text-sm leading-relaxed bg-white/50 rounded-xl p-3 border border-gray-50 shadow-sm">
+              {lines.map((l, i) => <p key={i} className="mb-2 last:mb-0">{l}</p>)}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   if (screen === 'bacaMateri') return (
-    <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
+    <div className="h-full bg-gray-100 flex flex-col overflow-hidden">
       <div className="bg-white px-4 py-3 flex items-center gap-3 border-b border-gray-200 flex-shrink-0 shadow-sm">
         <BackBtn onBack={goBack} />
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-gray-800 text-sm truncate">Rangkuman Bab 1 — Tumbuhan</p>
-          <p className="text-gray-400 text-xs">Bu Sari · PDF · Halaman 1 dari 5</p>
+          <p className="font-bold text-gray-800 text-sm truncate">{activeMaterial?.title || 'Materi Belajar'}</p>
+          <p className="text-gray-400 text-xs">Materi Guru · Dokumen Teks</p>
         </div>
         <button className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 text-lg">🔖</button>
       </div>
 
-      {/* PDF-like document */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm mx-auto">
           {/* Header */}
           <div className={`bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-4 mb-5 text-center`}>
             <span className="text-4xl block mb-2">🌿</span>
-            <p className="text-white font-display text-lg">Tumbuhan, Sumber Kehidupan di Bumi</p>
-            <p className="text-emerald-100 text-sm">IPAS Kelas 4 · Bab 1 · Kurikulum Merdeka</p>
+            <p className="text-white font-display text-lg">{activeMaterial?.title || 'Tumbuhan, Sumber Kehidupan di Bumi'}</p>
+            <p className="text-emerald-100 text-sm">{activeMaterial?.chapter ? `IPAS Kelas 3 · ${activeMaterial.chapter}` : 'IPAS Kelas 3 · Bab 1'}</p>
           </div>
 
-          <p className="font-bold text-emerald-700 text-sm mb-1 uppercase tracking-wide">📌 Tujuan Pembelajaran</p>
-          <ul className="text-gray-600 text-sm mb-4 space-y-1">
-            {['Menyebutkan bagian-bagian tumbuhan', 'Menjelaskan fungsi setiap bagian', 'Mendeskripsikan proses fotosintesis'].map((t, i) => (
-              <li key={i} className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">✓</span>{t}</li>
-            ))}
-          </ul>
+          {activeMaterial?.content ? (
+            activeMaterial.content.includes('<') && activeMaterial.content.includes('>') ? (
+              <div 
+                 className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 text-gray-700 text-sm leading-relaxed mb-6 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-2"
+                 dangerouslySetInnerHTML={{ __html: activeMaterial.content }} 
+              />
+            ) : (
+              renderSmartMateri(activeMaterial.content)
+            )
+          ) : (
+            <>
+              <p className="font-bold text-emerald-700 text-sm mb-1 uppercase tracking-wide">📌 Tujuan Pembelajaran</p>
+              <ul className="text-gray-600 text-sm mb-4 space-y-1">
+                {['Menyebutkan bagian-bagian tumbuhan', 'Menjelaskan fungsi setiap bagian', 'Mendeskripsikan proses fotosintesis'].map((t, i) => (
+                  <li key={i} className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">✓</span>{t}</li>
+                ))}
+              </ul>
 
-          <div className="w-full h-px bg-gray-100 my-4" />
+              <div className="w-full h-px bg-gray-100 my-4" />
 
-          <p className="font-bold text-gray-800 text-base mb-2">A. Bagian-bagian Tumbuhan</p>
-          <p className="text-gray-600 text-sm leading-relaxed mb-3">Tumbuhan memiliki beberapa bagian utama yang masing-masing memiliki fungsi berbeda-beda dalam menunjang kehidupan tumbuhan tersebut.</p>
+              <p className="font-bold text-gray-800 text-base mb-2">A. Bagian-bagian Tumbuhan</p>
+              <p className="text-gray-600 text-sm leading-relaxed mb-3">Tumbuhan memiliki beberapa bagian utama yang masing-masing memiliki fungsi berbeda-beda dalam menunjang kehidupan tumbuhan tersebut.</p>
 
-          <div className="bg-emerald-50 rounded-xl p-4 mb-4 space-y-2">
-            {[['🌱 Akar', 'Menyerap air dan mineral dari tanah; menopang tubuh tumbuhan'], ['🌿 Batang', 'Menopang tubuh tumbuhan; mengangkut air dan nutrisi ke daun'], ['🍃 Daun', 'Tempat berlangsungnya fotosintesis; membantu proses transpirasi'], ['🌸 Bunga', 'Alat perkembangbiakan tumbuhan; menarik serangga penyerbuk']].map(([part, func], i) => (
-              <div key={i} className="bg-white rounded-lg p-2.5">
-                <p className="font-bold text-gray-700 text-sm">{part}</p>
-                <p className="text-gray-500 text-xs mt-0.5">{func}</p>
+              <div className="bg-emerald-50 rounded-xl p-4 mb-4 space-y-2">
+                {[['🌱 Akar', 'Menyerap air dan mineral dari tanah; menopang tubuh tumbuhan'], ['🌿 Batang', 'Menopang tubuh tumbuhan; mengangkut air dan nutrisi ke daun'], ['🍃 Daun', 'Tempat berlangsungnya fotosintesis; membantu proses transpirasi'], ['🌸 Bunga', 'Alat perkembangbiakan tumbuhan; menarik serangga penyerbuk']].map(([part, func], i) => (
+                  <div key={i} className="bg-white rounded-lg p-2.5">
+                    <p className="font-bold text-gray-700 text-sm">{part}</p>
+                    <p className="text-gray-500 text-xs mt-0.5">{func}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <p className="font-bold text-gray-800 text-base mb-2">B. Proses Fotosintesis</p>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
-            <p className="text-center text-sm font-bold text-yellow-700 mb-2">Persamaan Fotosintesis</p>
-            <div className="bg-white rounded-lg p-3 text-center">
-              <p className="text-gray-700 text-sm font-medium">CO₂ + H₂O + Cahaya Matahari</p>
-              <p className="text-2xl my-1">↓</p>
-              <p className="text-emerald-700 text-sm font-bold">Glukosa (C₆H₁₂O₆) + O₂</p>
-            </div>
-          </div>
+              <p className="font-bold text-gray-800 text-base mb-2">B. Proses Fotosintesis</p>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
+                <p className="text-center text-sm font-bold text-yellow-700 mb-2">Persamaan Fotosintesis</p>
+                <div className="bg-white rounded-lg p-3 text-center">
+                  <p className="text-gray-700 text-sm font-medium">CO₂ + H₂O + Cahaya Matahari</p>
+                  <p className="text-2xl my-1">↓</p>
+                  <p className="text-emerald-700 text-sm font-bold">Glukosa (C₆H₁₂O₆) + O₂</p>
+                </div>
+              </div>
+            </>
+          )}
 
-          <div className="bg-gray-50 rounded-xl p-3 text-center">
-            <p className="text-gray-400 text-xs">Halaman 1 dari 5</p>
-            <button className="mt-2 text-emerald-600 font-bold text-sm">Halaman berikutnya →</button>
-          </div>
+          <button onClick={() => { addXP(20); markCompleted(BAB_LIST[currentBabIdx].id, 'materi'); goBack(); }} className="w-full mt-4 bg-emerald-600 text-white py-4 rounded-xl font-bold shadow-md hover:bg-emerald-700 active:scale-95 transition-all">
+            Selesai Membaca & Lanjut →
+          </button>
         </div>
         <div className="h-4" />
       </div>
@@ -2015,7 +2504,7 @@ export default function App() {
 
   // ── 12. MEDIA HUB ──────────────────────────────────────────────────────────
   if (screen === 'mediaHub') return (
-    <div className="h-screen bg-[#F0FDF4] flex flex-col overflow-hidden">
+    <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
         <p className="text-emerald-100 text-xs font-semibold mb-1">Pusat Aktivitas</p>
         <p className="text-white font-display text-2xl">Media Interaktif 🎮</p>
@@ -2066,7 +2555,7 @@ export default function App() {
   if (screen === 'dragDrop') {
     const allMatched = Object.keys(matched).length === PLANT_LEFT.length;
     return (
-      <div className="h-screen bg-[#F0FDF4] flex flex-col overflow-hidden">
+      <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
         <div className="bg-gradient-to-br from-green-500 to-emerald-600 px-5 pt-10 pb-5 rounded-b-[2.5rem] flex-shrink-0">
           <div className="flex items-center gap-3 mb-1">
             <BackBtn onBack={goBack} light />
@@ -2133,7 +2622,7 @@ export default function App() {
 
   // ── 14. FLIP CARDS — Wujud Zat ────────────────────────────────────────────
   if (screen === 'flipCards') return (
-    <div className="h-screen bg-[#F0F9FF] flex flex-col overflow-hidden">
+    <div className="h-full bg-[#F0F9FF] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-blue-500 to-cyan-600 px-5 pt-10 pb-5 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center gap-3">
           <BackBtn onBack={goBack} light />
@@ -2197,7 +2686,7 @@ export default function App() {
   if (screen === 'virtualEksperimen') {
     const step = EXP_STEPS[expStep];
     return (
-      <div className="h-screen bg-[#F5F3FF] flex flex-col overflow-hidden">
+      <div className="h-full bg-[#F5F3FF] flex flex-col overflow-hidden">
         <div className="bg-gradient-to-br from-violet-600 to-purple-700 px-5 pt-10 pb-5 rounded-b-[2.5rem] flex-shrink-0">
           <div className="flex items-center gap-3 mb-3">
             <BackBtn onBack={goBack} light />
@@ -2263,7 +2752,7 @@ export default function App() {
           {expStep > 0 && (
             <button onClick={() => setExpStep(e => e - 1)} className="flex-1 py-4 rounded-2xl font-bold text-violet-600 bg-violet-100">← Kembali</button>
           )}
-          <button onClick={() => expStep < EXP_STEPS.length - 1 ? setExpStep(e => e + 1) : goBack()}
+          <button onClick={() => expStep < EXP_STEPS.length - 1 ? setExpStep(e => e + 1) : (() => { addXP(30); markCompleted(BAB_LIST[currentBabIdx].id, 'interaktif'); goBack(); })()}
             className="flex-1 py-4 rounded-2xl font-display text-white bg-violet-600 shadow-lg active:scale-95 transition-transform">
             {expStep < EXP_STEPS.length - 1 ? 'Langkah Selanjutnya →' : 'Selesai! 🎉'}
           </button>
@@ -2283,7 +2772,7 @@ export default function App() {
       { top: '70%', left: '30%', transform: 'translateX(-50%)' },
     ];
     return (
-      <div className="h-screen bg-[#F0F9FF] flex flex-col overflow-hidden">
+      <div className="h-full bg-[#F0F9FF] flex flex-col overflow-hidden">
         <div className="bg-gradient-to-br from-sky-500 to-blue-700 px-5 pt-10 pb-5 rounded-b-[2.5rem] flex-shrink-0">
           <div className="flex items-center gap-3">
             <BackBtn onBack={goBack} light />
@@ -2367,12 +2856,12 @@ export default function App() {
     const q = QUIZ_IPAS[quizQ];
     const isCorrect = quizAns === q.correct;
     return (
-      <div className="h-screen bg-[#F0FDF4] flex flex-col overflow-hidden">
+      <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
         <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-5 rounded-b-[2.5rem] flex-shrink-0">
           <div className="flex items-center gap-3 mb-4">
             <BackBtn onBack={goBack} light />
             <div className="flex-1">
-              <p className="text-emerald-100 text-xs mb-1.5">Kuis IPAS Kelas 4</p>
+              <p className="text-emerald-100 text-xs mb-1.5">Kuis IPAS Kelas 3</p>
               <div className="flex gap-1">
                 {QUIZ_IPAS.map((_, i) => (
                   <div key={i} className={`flex-1 h-1.5 rounded-full ${i < quizQ ? 'bg-yellow-400' : i === quizQ ? 'bg-white' : 'bg-white/25'}`} />
@@ -2440,7 +2929,7 @@ export default function App() {
     const stars = score >= 80 ? 3 : score >= 60 ? 2 : 1;
     const xp = quizCorrect * 10;
     return (
-      <div className="h-screen bg-[#F0FDF4] flex flex-col overflow-hidden">
+      <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
         <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-6 pt-12 pb-14 rounded-b-[3rem] text-center flex-shrink-0">
           <p className="text-emerald-100 font-semibold mb-3">Kuis Selesai!</p>
           <div className="flex justify-center gap-1 mb-4">
@@ -2507,7 +2996,7 @@ export default function App() {
       { task: 'Presentasikan hasil kepada teman sekelas', done: false },
     ];
     return (
-      <div className="h-screen bg-[#FFFBEB] flex flex-col overflow-hidden">
+      <div className="h-full bg-[#FFFBEB] flex flex-col overflow-hidden">
         <div className="bg-gradient-to-br from-amber-500 to-orange-600 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
           <div className="flex items-center gap-3 mb-3">
             <BackBtn onBack={goBack} light />
@@ -2581,7 +3070,7 @@ export default function App() {
     // Ambient arena chrome shared by every phase (plain helper — not a nested
     // component, so the countdown re-render doesn't remount the subtree)
     const chrome = (children: React.ReactNode) => (
-      <div className={`h-screen relative flex flex-col overflow-hidden ${arenaShake ? 'animate-shake' : ''}`} style={{ background: ARENA_BG }}>
+      <div className={`h-full relative flex flex-col overflow-hidden ${arenaShake ? 'animate-shake' : ''}`} style={{ background: ARENA_BG }}>
         <div className="absolute inset-0 arena-grid opacity-60 pointer-events-none" />
         <div className="absolute -top-24 -left-20 w-72 h-72 rounded-full bg-emerald-500/20 blur-3xl pointer-events-none" style={{ animation: 'pulse-glow 4s ease-in-out infinite' }} />
         <div className="absolute -bottom-28 -right-16 w-80 h-80 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none" style={{ animation: 'pulse-glow 5s ease-in-out infinite 1s' }} />
