@@ -722,7 +722,7 @@ export default function App() {
                 <span className="text-emerald-200 text-[10px] font-black tracking-widest">KURIKULUM MERDEKA 2024</span>
               </div>
               <h2 className="font-display text-white text-3xl leading-tight mb-2">
-                Jelajah Ilmu Alam<br/>& Sosial  <PartyPopper className="w-5 h-5" /> 
+                Jelajah Ilmu Alam<br/>& Sosial
               </h2>
               <p className="text-white/70 text-xs leading-relaxed font-medium px-4">
                 Platform interaktif untuk guru dan siswa. Belajar jadi petualangan seru!
@@ -762,7 +762,7 @@ export default function App() {
                 <span className="text-violet-200 text-[10px] font-black tracking-widest">UNTUK GURU</span>
               </div>
               <h2 className="font-display text-white text-3xl leading-tight mb-2">
-                Manajemen Kelas<br/>Lebih Mudah  <ClipboardList className="w-5 h-5" /> 
+                Manajemen Kelas<br/>Lebih Mudah
               </h2>
               <p className="text-white/70 text-xs leading-relaxed px-4">
                 Upload PDF, video. Buat kuis & simulasi. Pantau progress seluruh siswa real-time.
@@ -794,7 +794,7 @@ export default function App() {
                 <span className="text-sky-200 text-[10px] font-black tracking-widest">UNTUK SISWA</span>
               </div>
               <h2 className="font-display text-white text-3xl leading-tight mb-2">
-                Belajar Sambil<br/>Bermain!  <Gamepad2 className="w-5 h-5" /> 
+                Belajar Sambil<br/>Bermain!
               </h2>
               <p className="text-white/70 text-xs leading-relaxed px-4">
                 Video interaktif, percobaan virtual, simulasi — belajar tidak lagi membosankan.
@@ -829,7 +829,7 @@ export default function App() {
 
             <div className="px-6 pb-10 text-center flex-shrink-0">
               <h2 className="font-display text-white text-3xl leading-tight mb-2">
-                Ayo Mulai<br/>Sekarang!  <Star className="w-5 h-5" /> 
+                Ayo Mulai<br/>Sekarang!
               </h2>
               <p className="text-white/70 text-xs leading-relaxed px-4">
                 Siap untuk mengeksplorasi ilmu alam & sosial?
@@ -947,22 +947,36 @@ export default function App() {
           </ScrollReveal>
           
           {/* Footer KKN / Copyright */}
+          {/* Footer KKN / Copyright */}
           <ScrollReveal delay={300}>
-            <div className="pt-8 pb-4 border-t border-gray-100 flex flex-col items-center justify-center text-center mt-6">
-              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-4">Didukung Oleh</p>
-              <div className="flex gap-6 items-center justify-center mb-5">
-                <div className="w-16 h-16 flex items-center justify-center bg-white rounded-full border border-gray-100 shadow-sm p-2">
-                  <img src="/logo-kkn.png" alt="KKN Gubugklakah" className="w-full h-full object-contain" />
+            <div className="relative mt-12 mb-6 p-6 sm:p-8 rounded-[2rem] bg-gradient-to-br from-indigo-50 via-white to-sky-50 border border-indigo-100/50 shadow-xl shadow-indigo-100/40 overflow-hidden text-center group/footer">
+              {/* Background animated glows */}
+              <div className="absolute top-0 right-0 w-48 h-48 bg-purple-300/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 group-hover/footer:scale-150 transition-transform duration-1000"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-sky-300/40 rounded-full blur-3xl translate-y-1/4 -translate-x-1/4 animate-pulse"></div>
+              <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-emerald-200/40 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+              
+              <p className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.25em] mb-6 relative z-10 drop-shadow-sm">Didukung Oleh</p>
+              
+              <div className="flex gap-4 sm:gap-6 items-center justify-center mb-6 relative z-10">
+                <div className="w-16 h-16 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-2xl border border-white shadow-sm shadow-indigo-100 p-2.5 transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-200 hover:border-indigo-200 hover:bg-white group">
+                  <img src="/logo-kemendikbud.png" alt="Kemendikbud" className="w-full h-full object-contain group-hover:scale-105 transition-transform" />
                 </div>
                 
-                <div className="w-16 h-16 flex items-center justify-center bg-white rounded-full border border-gray-100 shadow-sm p-2">
-                  <img src="/logo-unesa.png" alt="UNESA" className="w-full h-full object-contain" />
+                <div className="w-16 h-16 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-2xl border border-white shadow-sm shadow-indigo-100 p-2.5 transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-200 hover:border-indigo-200 hover:bg-white group">
+                  <img src="/logo-unesa.png" alt="UNESA" className="w-full h-full object-contain group-hover:scale-105 transition-transform" />
+                </div>
+
+                <div className="w-16 h-16 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-2xl border border-white shadow-sm shadow-indigo-100 p-2.5 transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-200 hover:border-indigo-200 hover:bg-white group">
+                  <img src="/logo-kkn.png" alt="KKN Gubugklakah" className="w-full h-full object-contain group-hover:scale-105 transition-transform" />
                 </div>
               </div>
-              <p className="text-gray-600 text-xs font-bold mb-1">Hak Cipta  <Copyright className="w-5 h-5" />  2026</p>
-              <p className="text-gray-400 text-[10px] leading-relaxed max-w-[250px] mx-auto">
+              
+              <div className="w-12 h-1 rounded-full bg-gradient-to-r from-transparent via-indigo-200 to-transparent mx-auto mb-6 relative z-10"></div>
+              
+              <p className="text-indigo-900 text-xs font-bold mb-2 relative z-10 flex items-center justify-center gap-1">Hak Cipta <Copyright className="w-3.5 h-3.5 text-indigo-400" /> 2026</p>
+              <p className="text-indigo-600/70 text-[10px] leading-relaxed max-w-[280px] mx-auto relative z-10">
                 Aplikasi ini dikembangkan sebagai bagian dari <br />
-                <span className="font-semibold text-gray-500">Program Kerja KKN Universitas Negeri Surabaya (UNESA)</span>
+                <span className="font-bold text-indigo-800">Program Kerja KKN Universitas Negeri Surabaya (UNESA)</span>
               </p>
             </div>
           </ScrollReveal>
