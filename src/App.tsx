@@ -1101,7 +1101,6 @@ export default function App() {
             <p className="font-display text-gray-800 text-xl">Masuk sebagai Guru</p>
             <p className="text-gray-500 text-sm">Upload materi & buat media interaktif</p>
           </div>
-          <span className="text-sky-500 text-xl">→</span>
         </button>
         <button onClick={() => { navigate('loginSiswa'); }}
           className="w-full bg-white/20 backdrop-blur-sm rounded-3xl p-5 flex items-center gap-4 border border-white/30 active:scale-95 transition-transform">
@@ -1110,7 +1109,6 @@ export default function App() {
             <p className="font-display text-white text-xl">Masuk sebagai Siswa</p>
             <p className="text-emerald-100 text-sm">Belajar & eksplorasi materi IPAS</p>
           </div>
-          <span className="text-white text-xl">→</span>
         </button>
       </div>
       <div className="mt-8 text-center opacity-80">
