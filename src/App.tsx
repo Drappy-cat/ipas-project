@@ -318,6 +318,12 @@ export default function App() {
   const [localBabs, setLocalBabs] = useState([...BAB_LIST]);
   const [activeMaterial, setActiveMaterial] = useState<any>(null);
 
+  // State ukuran font siswa, tersimpan di localStorage agar persisten
+  const [studentFontSize, setStudentFontSize] = useState<number>(() => {
+    const saved = localStorage.getItem('studentFontSize');
+    return saved ? parseInt(saved) : 18;
+  });
+
   // Responsive Kids Mode: Memperbesar font secara otomatis untuk layar Siswa
   useEffect(() => {
     const isStudentScreen = [
@@ -326,11 +332,16 @@ export default function App() {
     ].includes(screen);
     
     if (isStudentScreen) {
-      document.documentElement.style.fontSize = '18px'; // Font 12.5% lebih besar (1rem = 18px)
+      document.documentElement.style.fontSize = studentFontSize + 'px';
     } else {
-      document.documentElement.style.fontSize = '16px'; // Normal font size
+      document.documentElement.style.fontSize = '16px'; // Normal font size untuk Guru
     }
-  }, [screen]);
+  }, [screen, studentFontSize]);
+
+  const handleSetFontSize = (size: number) => {
+    setStudentFontSize(size);
+    localStorage.setItem('studentFontSize', String(size));
+  };
   
   // User Profile State
   const [userProfile, setUserProfile] = useState<{ xp: number; coins: number; completedModules: Record<number, string[]> }>({ xp: 0, coins: 0, completedModules: {} });
@@ -1641,6 +1652,51 @@ export default function App() {
               </div>
               <p className="text-sky-600 font-display text-xl">{totalSiswa}</p>
             </div>
+          </div>
+        </div>
+
+        {/* === PENGATUR UKURAN FONT SISWA === */}
+        <div className="bg-white rounded-3xl p-5 shadow-sm">
+          <p className="font-display text-gray-800 mb-1 flex items-center gap-2"><Eye className="w-5 h-5 text-violet-500" /> Ukuran Teks Siswa</p>
+          <p className="text-xs text-gray-400 mb-5">Sesuaikan ukuran huruf di semua halaman siswa agar nyaman dibaca anak-anak.</p>
+          
+          {/* Slider */}
+          <div className="relative mb-4">
+            <input
+              type="range"
+              min={16}
+              max={24}
+              step={1}
+              value={studentFontSize}
+              onChange={e => handleSetFontSize(Number(e.target.value))}
+              className="w-full h-2 rounded-full accent-violet-500 cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-gray-400 font-bold mt-1">
+              <span>Kecil (16px)</span>
+              <span>Sedang (20px)</span>
+              <span>Besar (24px)</span>
+            </div>
+          </div>
+
+          {/* Tombol preset */}
+          <div className="flex gap-2 mb-4">
+            {[{ label: 'Kecil', size: 16 }, { label: 'Sedang', size: 18 }, { label: 'Besar', size: 20 }, { label: 'Ekstra Besar', size: 22 }].map(preset => (
+              <button key={preset.size} onClick={() => handleSetFontSize(preset.size)}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
+                  studentFontSize === preset.size
+                    ? 'bg-violet-500 text-white border-violet-500 shadow-md shadow-violet-200'
+                    : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-violet-300 hover:text-violet-600'
+                }`}>
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Preview */}
+          <div className="bg-violet-50 rounded-2xl p-4 border border-violet-100">
+            <p className="text-violet-400 text-[10px] font-bold uppercase mb-2 tracking-wider">Pratinjau Teks Siswa</p>
+            <p style={{ fontSize: studentFontSize + 'px' }} className="text-gray-700 font-bold leading-snug">Halo, selamat belajar IPAS! 🌱</p>
+            <p style={{ fontSize: (studentFontSize - 2) + 'px' }} className="text-gray-500 mt-1">Ukuran font saat ini: {studentFontSize}px</p>
           </div>
         </div>
 
