@@ -16,8 +16,8 @@ const AppShell = () => (
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+CjxwYXRoIGQ9Ik0wIDBoNDB2NDBIMHoiIGZpbGw9Im5vbmUiLz4KPHBhdGggZD0iTTAgMTBoNDBWMGgtNHYxMGgtNHYtMTBoLTR2MTBoLTR2LTEwaC00djEwaC00di0xMGgtNHYxMGgtNHYtMTBoLTR2MTBoLTR2LTEweiIgZmlsbD0icmdiYSgwLDAsMCwwLjAxKSIvPgo8L3N2Zz4=')] opacity-50"></div>
     </div>
 
-    {/* Phone Frame */}
-    <div className="relative z-10 w-full h-screen sm:h-[850px] sm:max-h-[90vh] sm:max-w-[400px] sm:rounded-[3rem] sm:shadow-2xl sm:border-[8px] sm:border-gray-900 overflow-hidden bg-white flex flex-col">
+    {/* Device Frame */}
+    <div className="relative z-10 w-full h-screen sm:h-[850px] sm:max-h-[90vh] sm:max-w-[400px] lg:max-w-[1024px] lg:h-[700px] xl:max-w-[1200px] xl:h-[800px] sm:rounded-[3rem] lg:rounded-[2rem] sm:shadow-2xl sm:border-[8px] sm:border-gray-900 overflow-hidden bg-white flex flex-col transition-all duration-700 ease-in-out">
       <App />
       <DevMenu />
     </div>
