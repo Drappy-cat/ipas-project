@@ -737,9 +737,9 @@ export default function App() {
                 style={{ background: 'radial-gradient(circle, #a78bfa 0%, transparent 70%)' }} />
               
               <div className="relative z-10 flex flex-col items-center">
-                <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-4 shadow-2xl"
+                <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-4 shadow-2xl"
                   style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.3)', animation: 'float 3s ease-in-out infinite' }}>
-                   <User className="w-5 h-5" /> ‍ <School className="w-5 h-5" /> 
+                   <School className="w-10 h-10 text-white" />
                 </div>
 
                 {[
@@ -878,7 +878,7 @@ export default function App() {
             {/* Siswa Card */}
             <ScrollReveal delay={100}>
               <div className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-3xl p-6 mb-4 text-white shadow-lg relative overflow-hidden">
-                <div className="absolute -right-4 -top-4 text-8xl opacity-10"> <User className="w-5 h-5" /> </div>
+                <div className="absolute -right-4 -top-4 opacity-10"><User className="w-24 h-24 text-teal-800" /></div>
                 <h3 className="font-bold text-xl mb-1">Untuk Siswa</h3>
                 <p className="text-blue-100 text-xs mb-4">Belajar jadi petualangan seru!</p>
                 <ul className="space-y-3 relative z-10">
@@ -892,7 +892,7 @@ export default function App() {
             {/* Guru Card */}
             <ScrollReveal delay={200}>
               <div className="bg-gradient-to-br from-violet-500 to-purple-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
-                <div className="absolute -right-4 -top-4 text-8xl opacity-10"> <User className="w-5 h-5" /> ‍ <School className="w-5 h-5" /> </div>
+                <div className="absolute -right-4 -top-4 opacity-10"><School className="w-24 h-24 text-blue-800" /></div>
                 <h3 className="font-bold text-xl mb-1">Untuk Guru</h3>
                 <p className="text-violet-100 text-xs mb-4">Manajemen kelas di ujung jari.</p>
                 <ul className="space-y-3 relative z-10">
@@ -1096,7 +1096,7 @@ export default function App() {
       <div className="w-full space-y-4">
         <button onClick={() => { navigate('loginGuru'); }}
           className="w-full bg-white rounded-3xl p-5 flex items-center gap-4 shadow-2xl active:scale-95 transition-transform">
-          <div className="w-16 h-16 bg-sky-100 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0"> <User className="w-5 h-5" /> ‍ <School className="w-5 h-5" /> </div>
+          <div className="w-16 h-16 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center flex-shrink-0"><School className="w-8 h-8" /></div>
           <div className="flex-1 text-left">
             <p className="font-display text-gray-800 text-xl">Masuk sebagai Guru</p>
             <p className="text-gray-500 text-sm">Upload materi & buat media interaktif</p>
@@ -1105,7 +1105,7 @@ export default function App() {
         </button>
         <button onClick={() => { navigate('loginSiswa'); }}
           className="w-full bg-white/20 backdrop-blur-sm rounded-3xl p-5 flex items-center gap-4 border border-white/30 active:scale-95 transition-transform">
-          <div className="w-16 h-16 bg-emerald-400/30 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0"> <User className="w-5 h-5" /> ‍ <GraduationCap className="w-5 h-5" /> </div>
+          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center flex-shrink-0"><GraduationCap className="w-8 h-8" /></div>
           <div className="flex-1 text-left">
             <p className="font-display text-white text-xl">Masuk sebagai Siswa</p>
             <p className="text-emerald-100 text-sm">Belajar & eksplorasi materi IPAS</p>
@@ -1169,7 +1169,7 @@ export default function App() {
             <BackBtn onBack={goBack} light />
             <div>
               <p className="text-sky-100 text-xs font-semibold tracking-wider">Akses Khusus</p>
-              <p className="text-white font-display text-xl">Login Guru  <User className="w-5 h-5" /> ‍ <School className="w-5 h-5" /> </p>
+              <p className="text-white font-display text-xl flex items-center gap-2">Login Guru <School className="w-6 h-6" /></p>
             </div>
           </div>
         </div>
@@ -1337,7 +1337,7 @@ export default function App() {
             <BackBtn onBack={goBack} light />
             <div>
               <p className="text-emerald-100 text-xs font-semibold tracking-wider">Akses Belajar</p>
-              <p className="text-white font-display text-xl">Login Siswa  <User className="w-5 h-5" /> ‍ <GraduationCap className="w-5 h-5" /> </p>
+              <p className="text-white font-display text-xl flex items-center gap-2">Login Siswa <GraduationCap className="w-6 h-6" /></p>
             </div>
           </div>
         </div>
