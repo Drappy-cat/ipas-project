@@ -1276,26 +1276,8 @@ export default function App() {
             </div>
 
             <button onClick={handleLogin} className="w-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white py-4 rounded-xl font-bold mt-6 shadow-lg shadow-indigo-200 active:scale-95 transition-transform flex items-center justify-center gap-2 text-base">
-              {authMode === 'login' ? 'Masuk Sekarang' : 'Daftar Sekarang'}
+              Masuk Sekarang
             </button>
-            
-            <div className="flex items-center gap-4 my-5 opacity-60">
-              <div className="h-px bg-gray-400 flex-1"></div>
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">ATAU</span>
-              <div className="h-px bg-gray-400 flex-1"></div>
-            </div>
-
-            <button onClick={handleGoogleLogin} className="w-full bg-white border border-gray-200 text-gray-700 py-3.5 rounded-xl font-bold mb-5 shadow-sm hover:bg-gray-50 active:scale-95 transition-all flex items-center justify-center gap-3">
-              <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-              Lanjutkan dengan Google
-            </button>
-
-            <div className="text-center text-sm font-semibold text-gray-500">
-              {authMode === 'login' ? 'Belum punya akun? ' : 'Sudah punya akun? '}
-              <button onClick={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setLoginError(''); }} className="text-sky-600 hover:text-sky-700 underline underline-offset-2">
-                {authMode === 'login' ? 'Daftar di sini' : 'Masuk di sini'}
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -1411,26 +1393,38 @@ export default function App() {
           setScreens(['studentHome']);
           setActiveTab('home');
         } else {
-          const res = await signInWithEmailAndPassword(auth, email, password);
-          const docRef = doc(db, 'users', res.user.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists() && docSnap.data().role === 'guru') {
-            await signOut(auth);
-            setLoginError('Akun ini terdaftar sebagai Guru. Silakan login melalui portal Guru.');
-            return;
+          try {
+            const res = await signInWithEmailAndPassword(auth, email, password);
+            const docRef = doc(db, 'users', res.user.uid);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists() && docSnap.data().role === 'guru') {
+              await signOut(auth);
+              setLoginError('Akun ini terdaftar sebagai Guru. Silakan login melalui portal Guru.');
+              return;
+            }
+            await setDoc(docRef, { role: 'siswa', displayName: res.user.displayName || loginUser.trim() }, { merge: true });
+            setScreens(['studentHome']);
+            setActiveTab('home');
+          } catch (loginErr: any) {
+            // Auto-register jika akun belum ada (ditandai dengan invalid credential pada first try)
+            if (loginErr.code === 'auth/invalid-credential') {
+              try {
+                const res = await createUserWithEmailAndPassword(auth, email, password);
+                const name = loginUser.trim();
+                await updateProfile(res.user, { displayName: name });
+                await setDoc(doc(db, 'users', res.user.uid), { role: 'siswa', xp: 0, coins: 0, completedModules: {}, displayName: name }, { merge: true });
+                setScreens(['studentHome']);
+                setActiveTab('home');
+              } catch (regErr: any) {
+                setLoginError('Gagal membuat profil siswa baru: ' + regErr.message);
+              }
+            } else {
+              setLoginError('Terjadi kesalahan: ' + loginErr.message);
+            }
           }
-          await setDoc(docRef, { role: 'siswa', displayName: res.user.displayName || loginUser.trim() }, { merge: true });
-          setScreens(['studentHome']);
-          setActiveTab('home');
         }
       } catch (error: any) {
-        if (error.code === 'auth/email-already-in-use') {
-          setLoginError('Nama dan Nomor Absen ini sudah terdaftar. Silakan pindah ke tab "Login".');
-        } else if (error.code === 'auth/invalid-credential') {
-          setLoginError('Nama atau Nomor Absen salah! Jika lupa, minta tolong Guru ya.');
-        } else {
-          setLoginError('Terjadi kesalahan: ' + error.message);
-        }
+        setLoginError('Terjadi kesalahan: ' + error.message);
       }
     };
 
@@ -1441,13 +1435,13 @@ export default function App() {
             <BackBtn onBack={goBack} light />
             <div>
               <p className="text-emerald-100 text-xs font-semibold tracking-wider">Akses Belajar</p>
-              <p className="text-white font-display text-xl flex items-center gap-2">{authMode === 'login' ? 'Login' : 'Daftar'} Siswa <GraduationCap className="w-6 h-6" /></p>
+              <p className="text-white font-display text-xl flex items-center gap-2">Login Siswa <GraduationCap className="w-6 h-6" /></p>
             </div>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-center">
           <div className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-100 relative my-auto">
-            <h2 className="font-display text-2xl text-gray-800 mb-4 text-center mt-2">{authMode === 'login' ? 'Mulai Belajar' : 'Buat Akun Siswa'}</h2>
+            <h2 className="font-display text-2xl text-gray-800 mb-4 text-center mt-2">Mulai Belajar</h2>
             
             {loginError && (
               <div className="bg-red-50 text-red-600 text-xs font-bold p-3 rounded-xl mb-5 text-center flex items-center justify-center gap-2 border border-red-100">
@@ -1476,26 +1470,8 @@ export default function App() {
             </div>
 
             <button onClick={handleLoginSiswa} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-4 rounded-xl font-bold mt-6 shadow-lg shadow-emerald-200 active:scale-95 transition-transform flex items-center justify-center gap-2 text-base">
-              {authMode === 'login' ? 'Masuk Sekarang' : 'Daftar Sekarang'}
+              Masuk Sekarang
             </button>
-
-            <div className="flex items-center gap-4 my-5 opacity-60">
-              <div className="h-px bg-gray-400 flex-1"></div>
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">ATAU</span>
-              <div className="h-px bg-gray-400 flex-1"></div>
-            </div>
-
-            <button onClick={handleGoogleLoginSiswa} className="w-full bg-white border border-gray-200 text-gray-700 py-3.5 rounded-xl font-bold mb-5 shadow-sm hover:bg-gray-50 active:scale-95 transition-all flex items-center justify-center gap-3">
-              <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-              Lanjutkan dengan Google
-            </button>
-
-            <div className="text-center text-sm font-semibold text-gray-500">
-              {authMode === 'login' ? 'Belum punya akun? ' : 'Sudah punya akun? '}
-              <button onClick={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setLoginError(''); }} className="text-emerald-600 hover:text-emerald-700 underline underline-offset-2">
-                {authMode === 'login' ? 'Daftar di sini' : 'Masuk di sini'}
-              </button>
-            </div>
           </div>
         </div>
       </div>
