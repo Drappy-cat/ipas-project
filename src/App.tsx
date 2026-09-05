@@ -8,7 +8,7 @@ type Screen =
   | 'homepage' | 'splash' | 'onboarding'
   | 'roleSelect' | 'loginGuru' | 'loginSiswa' | 'forgotPassword'
   | 'teacherDash' | 'uploadMateri' | 'buatInteraktif' | 'progressSiswa' | 'kelolaBab' | 'pengaturanGuru'
-  | 'studentHome' | 'daftarBab' | 'detailBab'
+  | 'studentHome' | 'daftarBab' | 'detailBab' | 'studentPengaturan'
   | 'bacaMateri' | 'mediaHub'
   | 'dragDrop' | 'flipCards' | 'virtualEksperimen' | 'simulasiAir'
 | 'quiz' | 'hasilKuis' | 'proyekP5' | 'arena';
@@ -324,17 +324,38 @@ export default function App() {
     return saved ? parseInt(saved) : 18;
   });
 
-  // Responsive Kids Mode: Memperbesar font secara otomatis untuk layar Siswa
+  // Responsive Kids Mode: Inject CSS font-size overrides secara langsung agar benar-benar berfungsi dengan Tailwind
   useEffect(() => {
+    let styleEl = document.getElementById('student-font-style') as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'student-font-style';
+      document.head.appendChild(styleEl);
+    }
     const isStudentScreen = [
       'loginSiswa', 'studentHome', 'daftarBab', 'detailBab', 'bacaMateri', 'mediaHub',
-      'dragDrop', 'flipCards', 'virtualEksperimen', 'simulasiAir', 'quiz', 'hasilKuis', 'proyekP5', 'arena'
+      'dragDrop', 'flipCards', 'virtualEksperimen', 'simulasiAir', 'quiz', 'hasilKuis', 'proyekP5', 'arena', 'studentPengaturan'
     ].includes(screen);
     
     if (isStudentScreen) {
-      document.documentElement.style.fontSize = studentFontSize + 'px';
+      const s = studentFontSize;
+      styleEl.textContent = `
+        .student-screen { font-size: ${s}px !important; }
+        .student-screen p, .student-screen span, .student-screen li, .student-screen label { font-size: ${s}px !important; }
+        .student-screen h1 { font-size: ${Math.round(s * 1.8)}px !important; }
+        .student-screen h2 { font-size: ${Math.round(s * 1.5)}px !important; }
+        .student-screen h3, .student-screen .text-xl { font-size: ${Math.round(s * 1.25)}px !important; }
+        .student-screen .text-xs, .student-screen .text-\[10px\] { font-size: ${Math.round(s * 0.75)}px !important; }
+        .student-screen .text-sm { font-size: ${Math.round(s * 0.875)}px !important; }
+        .student-screen .text-base { font-size: ${s}px !important; }
+        .student-screen .text-lg { font-size: ${Math.round(s * 1.125)}px !important; }
+        .student-screen .text-2xl { font-size: ${Math.round(s * 1.5)}px !important; }
+        .student-screen .text-3xl { font-size: ${Math.round(s * 1.875)}px !important; }
+        .student-screen button { font-size: ${s}px !important; }
+        .student-screen input, .student-screen textarea { font-size: ${s}px !important; }
+      `;
     } else {
-      document.documentElement.style.fontSize = '16px'; // Normal font size untuk Guru
+      styleEl.textContent = '';
     }
   }, [screen, studentFontSize]);
 
@@ -642,7 +663,7 @@ export default function App() {
 
   const handleTabPress = (tab: string) => {
     setActiveTab(tab);
-    const map: Record<string, Screen> = { home: 'studentHome', bab: 'daftarBab', aktivitas: 'mediaHub', proyek: 'proyekP5' };
+    const map: Record<string, Screen> = { home: 'studentHome', bab: 'daftarBab', aktivitas: 'mediaHub', proyek: 'proyekP5', pengaturan: 'studentPengaturan' };
     setScreens([map[tab]]);
   };
 
@@ -669,11 +690,12 @@ export default function App() {
         { id: 'bab', icon: <Library className="w-5 h-5" />, label: 'Bab' },
         { id: 'aktivitas', icon: <Gamepad2 className="w-5 h-5" />, label: 'Aktivitas' },
         { id: 'proyek', icon: <Leaf className="w-5 h-5" />, label: 'Proyek P5' },
+        { id: 'pengaturan', icon: <Settings className="w-5 h-5" />, label: 'Pengaturan' },
       ].map(t => {
         const active = activeTab === t.id;
         return (
           <button key={t.id} onClick={() => handleTabPress(t.id)}
-            className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-2xl transition-all ${active ? 'bg-emerald-100' : ''}`}>
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all ${active ? 'bg-emerald-100' : ''}`}>
             <span className="text-2xl">{t.icon}</span>
             <span className={`text-[10px] font-bold ${active ? 'text-emerald-700' : 'text-gray-400'}`}>{t.label}</span>
           </button>
@@ -1434,7 +1456,7 @@ export default function App() {
     };
 
     return (
-      <div className="h-full bg-emerald-50 flex flex-col overflow-hidden">
+      <div className="student-screen h-full bg-emerald-50 flex flex-col overflow-hidden">
         <div className="bg-gradient-to-br from-emerald-500 to-teal-600 px-5 pt-6 pb-4 rounded-b-[2rem] flex-shrink-0 shadow-lg">
           <div className="flex items-center gap-3 mb-2">
             <BackBtn onBack={goBack} light />
@@ -2377,7 +2399,7 @@ export default function App() {
 
   // ── 7. STUDENT HOME ────────────────────────────────────────────────────────
   if (screen === 'studentHome') return (
-    <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
+    <div className="student-screen h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-8 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -2472,7 +2494,7 @@ export default function App() {
 
   // ── 8. DAFTAR BAB ──────────────────────────────────────────────────────────
   if (screen === 'daftarBab') return (
-    <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
+    <div className="student-screen h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-5 rounded-b-[2.5rem] flex-shrink-0">
         <p className="text-emerald-100 text-xs font-semibold mb-1">IPAS Kelas 3 · Kurikulum Merdeka</p>
         <p className="text-white font-display text-2xl">8 Bab Pembelajaran  <Leaf className="w-5 h-5" /> </p>
@@ -2522,7 +2544,7 @@ export default function App() {
     const proyekDone = completed.includes('proyek');
 
     return (
-    <div className="h-full bg-slate-50 flex flex-col overflow-hidden font-sans">
+    <div className="student-screen h-full bg-slate-50 flex flex-col overflow-hidden font-sans">
       <div className={`relative bg-gradient-to-r ${bab.gradient} px-5 pt-10 pb-4 shadow-md flex-shrink-0`}>
         <div className="flex items-center gap-3">
           <button onClick={goBack} className="w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl flex items-center justify-center text-white transition-colors active:scale-95 flex-shrink-0">
@@ -2753,7 +2775,7 @@ export default function App() {
 
   // ── 12. MEDIA HUB ──────────────────────────────────────────────────────────
   if (screen === 'mediaHub') return (
-    <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
+    <div className="student-screen h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
         <p className="text-emerald-100 text-xs font-semibold mb-1">Pusat Aktivitas</p>
         <p className="text-white font-display text-2xl">Media Interaktif  <Gamepad2 className="w-5 h-5" /> </p>
@@ -3230,6 +3252,85 @@ export default function App() {
   }
 
   // ── 19. PROYEK P5 ──────────────────────────────────────────────────────────
+  // ── STUDENT PENGATURAN ─────────────────────────────────────────────────────
+  if (screen === 'studentPengaturan') {
+    return (
+      <div className="student-screen h-full bg-emerald-50 flex flex-col overflow-hidden">
+        <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
+          <p className="text-white font-display text-xl flex items-center gap-2"><Settings className="w-5 h-5" /> Pengaturan</p>
+          <p className="text-emerald-200 text-xs mt-1">Sesuaikan tampilan belajarmu</p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
+          {/* Profil Siswa */}
+          <div className="bg-white rounded-3xl p-5 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
+                <GraduationCap className="w-8 h-8 text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-display text-gray-800 text-lg">{auth.currentUser?.displayName || 'Siswa'}</p>
+                <p className="text-emerald-600 text-sm font-bold">Siswa IPAS</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Ukuran Teks */}
+          <div className="bg-white rounded-3xl p-5 shadow-sm">
+            <p className="font-display text-gray-800 mb-1 flex items-center gap-2"><Eye className="w-5 h-5 text-violet-500" /> Ukuran Huruf</p>
+            <p className="text-xs text-gray-400 mb-5">Besarkan atau kecilkan huruf sesuai keinginanmu!</p>
+
+            {/* Slider */}
+            <div className="mb-4">
+              <input
+                type="range"
+                min={16}
+                max={24}
+                step={1}
+                value={studentFontSize}
+                onChange={e => handleSetFontSize(Number(e.target.value))}
+                className="w-full h-3 rounded-full accent-violet-500 cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-gray-400 font-bold mt-2">
+                <span>Kecil</span>
+                <span>Sedang</span>
+                <span>Besar</span>
+              </div>
+            </div>
+
+            {/* Tombol preset */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {[{ label: '🔤 Kecil', size: 16 }, { label: '🔡 Normal', size: 18 }, { label: '🔠 Besar', size: 20 }, { label: '🅰 Ekstra Besar', size: 22 }].map(preset => (
+                <button key={preset.size} onClick={() => handleSetFontSize(preset.size)}
+                  className={`py-3 rounded-2xl font-bold border-2 transition-all active:scale-95 ${
+                    studentFontSize === preset.size
+                      ? 'bg-violet-500 text-white border-violet-500 shadow-md shadow-violet-200'
+                      : 'bg-gray-50 text-gray-600 border-gray-200'
+                  }`}>
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Preview */}
+            <div className="bg-violet-50 rounded-2xl p-4 border border-violet-100">
+              <p style={{ fontSize: studentFontSize + 'px' }} className="text-gray-700 font-bold leading-snug">Halo, selamat belajar IPAS! 🌱</p>
+              <p style={{ fontSize: (studentFontSize - 4) + 'px' }} className="text-gray-400 mt-1">Ukuran sekarang: {studentFontSize}px</p>
+            </div>
+          </div>
+
+          {/* Logout */}
+          <button onClick={async () => { await signOut(auth); setScreens(['roleSelect']); }}
+            className="w-full bg-red-50 text-red-600 border border-red-200 font-bold py-4 rounded-2xl active:scale-95 transition-transform shadow-sm flex items-center justify-center gap-2">
+            Keluar Akun
+          </button>
+          <div className="h-4" />
+        </div>
+        <StudentBottomNav />
+      </div>
+    );
+  }
+
   if (screen === 'proyekP5') {
     const phases = [
       { phase: 1, label: 'Perencanaan', icon: <ClipboardList className="w-5 h-5" />, color: 'bg-amber-500', done: true },
@@ -3245,7 +3346,7 @@ export default function App() {
       { task: 'Presentasikan hasil kepada teman sekelas', done: false },
     ];
     return (
-      <div className="h-full bg-[#FFFBEB] flex flex-col overflow-hidden">
+      <div className="student-screen h-full bg-[#FFFBEB] flex flex-col overflow-hidden">
         <div className="bg-gradient-to-br from-amber-500 to-orange-600 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
           <div className="flex items-center gap-3 mb-3">
             <BackBtn onBack={goBack} light />
