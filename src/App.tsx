@@ -330,7 +330,17 @@ export default function App() {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setUserProfile({ xp: data.xp || 0, coins: data.coins || 0, completedModules: data.completedModules || {} });
+            
+            // Auto-login redirect
+            setScreens(p => {
+              const curr = p[p.length - 1];
+              if (curr === 'splash' || curr === 'homepage' || curr === 'roleSelect' || curr === 'loginGuru' || curr === 'loginSiswa') {
+                return data.role === 'guru' ? ['teacherDash'] : ['studentHome'];
+              }
+              return p;
+            });
           } else {
+            // New user without profile, we don't know their role yet (will be set during registration/login)
             const defaultProfile = { xp: 0, coins: 0, completedModules: {} };
             await setDoc(docRef, defaultProfile);
             setUserProfile(defaultProfile);
@@ -1137,7 +1147,17 @@ export default function App() {
       try {
         setLoginError('');
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        const res = await signInWithPopup(auth, provider);
+        
+        const docRef = doc(db, 'users', res.user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().role === 'siswa') {
+          await signOut(auth);
+          setLoginError('Akun ini terdaftar sebagai Siswa. Silakan login melalui portal Siswa.');
+          return;
+        }
+        await setDoc(docRef, { role: 'guru' }, { merge: true });
+        
         setScreens(['teacherDash']);
       } catch (error: any) {
         setLoginError('Google Login gagal: ' + error.message);
@@ -1157,11 +1177,20 @@ export default function App() {
       setLoginError('');
       try {
         if (authMode === 'register') {
-          await createUserWithEmailAndPassword(auth, loginUser, loginPass);
-          await updateProfile(auth.currentUser!, { displayName: 'Guru' });
+          const res = await createUserWithEmailAndPassword(auth, loginUser, loginPass);
+          await updateProfile(res.user, { displayName: 'Guru' });
+          await setDoc(doc(db, 'users', res.user.uid), { role: 'guru', xp: 0, coins: 0, completedModules: {} }, { merge: true });
           setScreens(['teacherDash']);
         } else {
-          await signInWithEmailAndPassword(auth, loginUser, loginPass);
+          const res = await signInWithEmailAndPassword(auth, loginUser, loginPass);
+          const docRef = doc(db, 'users', res.user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists() && docSnap.data().role === 'siswa') {
+            await signOut(auth);
+            setLoginError('Akun ini terdaftar sebagai Siswa. Silakan login melalui portal Siswa.');
+            return;
+          }
+          await setDoc(docRef, { role: 'guru' }, { merge: true });
           setScreens(['teacherDash']);
         }
       } catch (error: any) {
@@ -1335,7 +1364,17 @@ export default function App() {
       try {
         setLoginError('');
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        const res = await signInWithPopup(auth, provider);
+        
+        const docRef = doc(db, 'users', res.user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().role === 'guru') {
+          await signOut(auth);
+          setLoginError('Akun ini terdaftar sebagai Guru. Silakan login melalui portal Guru.');
+          return;
+        }
+        await setDoc(docRef, { role: 'siswa' }, { merge: true });
+        
         setScreens(['studentHome']);
         setActiveTab('home');
       } catch (error: any) {
@@ -1355,12 +1394,25 @@ export default function App() {
       
       try {
         if (authMode === 'register') {
-          await createUserWithEmailAndPassword(auth, email, loginPass);
-          await updateProfile(auth.currentUser!, { displayName: loginUser.split('@')[0] });
+          if (email.includes('guru') || loginUser.toLowerCase().includes('guru')) {
+            setLoginError('Nama atau email tidak boleh mengandung kata "guru" untuk akun siswa.');
+            return;
+          }
+          const res = await createUserWithEmailAndPassword(auth, email, loginPass);
+          await updateProfile(res.user, { displayName: loginUser.split('@')[0] });
+          await setDoc(doc(db, 'users', res.user.uid), { role: 'siswa', xp: 0, coins: 0, completedModules: {} }, { merge: true });
           setScreens(['studentHome']);
           setActiveTab('home');
         } else {
-          await signInWithEmailAndPassword(auth, email, loginPass);
+          const res = await signInWithEmailAndPassword(auth, email, loginPass);
+          const docRef = doc(db, 'users', res.user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists() && docSnap.data().role === 'guru') {
+            await signOut(auth);
+            setLoginError('Akun ini terdaftar sebagai Guru. Silakan login melalui portal Guru.');
+            return;
+          }
+          await setDoc(docRef, { role: 'siswa' }, { merge: true });
           setScreens(['studentHome']);
           setActiveTab('home');
         }
