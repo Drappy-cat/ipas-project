@@ -1,7 +1,7 @@
 import { Zap, Leaf, Puzzle, GalleryVertical, School, FileText, Microscope, Telescope, ClipboardList, BarChart2, PartyPopper, User, Lightbulb, Gamepad2, Sparkles, GraduationCap, Waves, TestTube, Star, Bug, Sun, Upload, Rocket, CheckCircle, ShoppingCart, FileEdit, Eye, AlertTriangle, RefreshCw, Search, Lock, Handshake, Map, Box, Smile, Target, Wind, Film, Image, Library, MessageCircle, Home, TrendingUp, Settings, Battery, Globe, Copyright, Hand, Users, BookOpen, HelpCircle, ChevronRight, PlayCircle, Pin, Bird, Coins, Cloud, CloudRain, Trophy, Heart, Hourglass, Ear, Wrench, Scissors, Flame, Egg, TreePine, Plug, Magnet, Cat, Sunrise, Store, Droplet, ToyBrick, DollarSign, Brain, Mail, Key, Folder, Hash, PenTool, Paperclip, Bell, MoveHorizontal, Bot, BadgePlus, Bookmark, Flower, Pointer, Circle, Mountain, CloudSun, Gift, Dumbbell, Palette, Timer, Link, Medal, Gem } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { auth, db } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { collection, addDoc, getDocs, query, where, serverTimestamp, doc, setDoc, getDoc } from 'firebase/firestore';
 // ─── Types ─────────────────────────────────────────────────────────────────
 type Screen =
@@ -1386,28 +1386,32 @@ export default function App() {
 
     const handleLoginSiswa = async () => {
       if (!loginUser || !loginPass) {
-        setLoginError('Email dan password harus diisi.');
+        setLoginError('Nama Panggilan dan Nomor Absen harus diisi.');
         return;
       }
       
       setLoginError('');
-      // Kita asumsikan format email otomatis untuk siswa jika tidak ada @
-      const email = loginUser.includes('@') ? loginUser : loginUser.split(' ').join('').toLowerCase() + '@siswa.sekolah.com';
+      
+      const cleanName = loginUser.trim().toLowerCase().replace(/\s+/g, '');
+      const absen = loginPass.trim();
+      const email = `${cleanName}.${absen}@siswa.sekolah.com`;
+      const password = `Siswa_${absen}_!IPAS26`;
       
       try {
+        await setPersistence(auth, browserLocalPersistence);
         if (authMode === 'register') {
-          if (email.includes('guru') || loginUser.toLowerCase().includes('guru')) {
-            setLoginError('Nama atau email tidak boleh mengandung kata "guru" untuk akun siswa.');
+          if (loginUser.toLowerCase().includes('guru')) {
+            setLoginError('Nama tidak boleh mengandung kata "guru".');
             return;
           }
-          const res = await createUserWithEmailAndPassword(auth, email, loginPass);
-          const name = loginUser.split('@')[0];
+          const res = await createUserWithEmailAndPassword(auth, email, password);
+          const name = loginUser.trim();
           await updateProfile(res.user, { displayName: name });
           await setDoc(doc(db, 'users', res.user.uid), { role: 'siswa', xp: 0, coins: 0, completedModules: {}, displayName: name }, { merge: true });
           setScreens(['studentHome']);
           setActiveTab('home');
         } else {
-          const res = await signInWithEmailAndPassword(auth, email, loginPass);
+          const res = await signInWithEmailAndPassword(auth, email, password);
           const docRef = doc(db, 'users', res.user.uid);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists() && docSnap.data().role === 'guru') {
@@ -1415,17 +1419,15 @@ export default function App() {
             setLoginError('Akun ini terdaftar sebagai Guru. Silakan login melalui portal Guru.');
             return;
           }
-          await setDoc(docRef, { role: 'siswa', displayName: res.user.displayName || 'Siswa' }, { merge: true });
+          await setDoc(docRef, { role: 'siswa', displayName: res.user.displayName || loginUser.trim() }, { merge: true });
           setScreens(['studentHome']);
           setActiveTab('home');
         }
       } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
-          setLoginError('Akun sudah terdaftar. Silakan masuk (Login).');
+          setLoginError('Nama dan Nomor Absen ini sudah terdaftar. Silakan pindah ke tab "Login".');
         } else if (error.code === 'auth/invalid-credential') {
-          setLoginError('Email atau password salah! Jika lupa, minta tolong Guru ya.');
-        } else if (error.code === 'auth/invalid-email') {
-          setLoginError('Format email tidak valid.');
+          setLoginError('Nama atau Nomor Absen salah! Jika lupa, minta tolong Guru ya.');
         } else {
           setLoginError('Terjadi kesalahan: ' + error.message);
         }
@@ -1455,20 +1457,20 @@ export default function App() {
 
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-500 mb-2 block uppercase">Username / Email Siswa</label>
+                <label className="text-xs font-bold text-gray-500 mb-2 block uppercase">Nama Panggilan</label>
                 <div className="relative">
                   <span className="absolute left-4 top-3 text-gray-400"> <User className="w-5 h-5" /> </span>
                   <input type="text" value={loginUser} onChange={e => setLoginUser(e.target.value)} 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all" placeholder="budi atau budi@siswa.sekolah.com" />
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all" placeholder="Misal: budi" />
                 </div>
               </div>
               
               <div>
-                <label className="text-xs font-bold text-gray-500 mb-2 block uppercase">Password (Min 6)</label>
+                <label className="text-xs font-bold text-gray-500 mb-2 block uppercase">Nomor Absen</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-3 text-gray-400"> <Key className="w-5 h-5" /> </span>
-                  <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all" placeholder="••••••••" />
+                  <span className="absolute left-4 top-3 text-gray-400"> <Hash className="w-5 h-5" /> </span>
+                  <input type="number" value={loginPass} onChange={e => setLoginPass(e.target.value)} 
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all" placeholder="Misal: 12" />
                 </div>
               </div>
             </div>
