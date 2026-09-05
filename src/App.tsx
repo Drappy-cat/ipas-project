@@ -1218,11 +1218,7 @@ export default function App() {
         <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-center">
           <div className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-100 relative my-auto">
             
-            <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg border-4 border-gray-50">
-               <span className="text-4xl"> <Lock className="w-5 h-5" /> </span>
-            </div>
-
-            <h2 className="font-display text-2xl text-gray-800 mb-4 text-center mt-6">{authMode === 'login' ? 'Masuk Dashboard' : 'Buat Akun Guru'}</h2>
+            <h2 className="font-display text-2xl text-gray-800 mb-4 text-center mt-2">{authMode === 'login' ? 'Masuk Dashboard' : 'Buat Akun Guru'}</h2>
             
             {loginError && (
               <div className="bg-red-50 text-red-600 text-xs font-bold p-3 rounded-xl mb-5 text-center flex items-center justify-center gap-2 border border-red-100">
