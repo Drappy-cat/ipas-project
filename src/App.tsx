@@ -69,20 +69,20 @@ const SimpleRichTextEditor = ({ value, onChange }: { value: string, onChange: (v
 // ─── Kurikulum Merdeka · IPAS Kelas 3 ──────────────────────────────────────
 const BAB_LIST = [
   {
-    id: 1, emoji: '🧑',
+    id: 1, emoji: <Smile className="w-6 h-6 text-white" />,
     judul: 'Keajaiban Tubuhku',
     gradient: 'from-amber-500 to-orange-600',
     cp: 'Peserta didik mengenal bagian tubuh manusia beserta fungsinya.',
     topics: ['Bagian Tubuh Kita', 'Fungsi Anggota Tubuh', 'Merawat Tubuh'],
     materi: [
-      { type: 'pdf', icon: '📄', title: 'Rangkuman Bab 1 — Tubuhku', uploader: 'Bu Sari', tanggal: '2 hari lalu' },
+      { type: 'pdf', icon: <FileText className="w-5 h-5 text-gray-500" />, title: 'Rangkuman Bab 1 — Tubuhku', uploader: 'Guru', tanggal: '2 hari lalu' },
     ],
     interaktif: [
-      { type: 'matching', icon: '🧩', title: 'Cocokkan Bagian Tubuh & Fungsinya', screen: 'dragDrop' as Screen },
+      { type: 'matching', icon: <Puzzle className="w-8 h-8 text-amber-500" />, title: 'Cocokkan Bagian Tubuh & Fungsinya', screen: 'dragDrop' as Screen },
     ],
   },
   {
-    id: 2, emoji: '⏳',
+    id: 2, emoji: <Hourglass className="w-6 h-6 text-white" />,
     judul: 'Dahulu, Kini, dan Nanti',
     gradient: 'from-green-500 to-emerald-600',
     cp: 'Peserta didik menceritakan perubahan yang terjadi pada diri dan sekitarnya dari waktu ke waktu.',
@@ -91,7 +91,7 @@ const BAB_LIST = [
     interaktif: [],
   },
   {
-    id: 3, emoji: '🤝',
+    id: 3, emoji: <Handshake className="w-6 h-6 text-white" />,
     judul: 'Peduli dan Berbagi',
     gradient: 'from-lime-600 to-green-700',
     cp: 'Peserta didik memahami pentingnya bersikap peduli dan berbagi dengan sesama.',
@@ -100,14 +100,14 @@ const BAB_LIST = [
     interaktif: [],
   },
   {
-    id: 4, emoji: '🦋',
+    id: 4, emoji: <Bug className="w-6 h-6 text-white" />,
     judul: 'Siklus Hidup yang Menakjubkan',
     gradient: 'from-yellow-400 to-amber-500',
     cp: 'Peserta didik mengamati dan mendeskripsikan siklus hidup makhluk hidup.',
     topics: ['Siklus Hidup Tumbuhan', 'Siklus Hidup Hewan'],
     materi: [],
     interaktif: [
-      { type: 'simulasi', icon: '🔬', title: 'Simulasi Metamorfosis', screen: 'simulasiAir' as Screen },
+      { type: 'simulasi', icon: <Microscope className="w-8 h-8 text-yellow-500" />, title: 'Simulasi Metamorfosis', screen: 'simulasiAir' as Screen },
     ],
   },
   {
@@ -1591,7 +1591,7 @@ export default function App() {
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center"><School className="w-8 h-8 text-sky-600" /></div>
             <div>
-              <p className="font-display text-gray-800 text-lg">Bu Sari</p>
+              <p className="font-display text-gray-800 text-lg">{auth.currentUser?.displayName || 'Guru'}</p>
               <p className="text-sky-600 text-sm font-bold">Guru IPAS Kelas 3</p>
             </div>
           </div>
@@ -2328,26 +2328,23 @@ export default function App() {
         {/* Media baru dari guru */}
         <div>
           <div className="flex justify-between items-center mb-2.5">
-            <p className="font-display text-gray-700">Media Baru dari Bu Sari  <BadgePlus className="w-5 h-5" /> </p>
+            <p className="font-display text-gray-700 flex items-center gap-2">Media Pembelajaran Baru <BadgePlus className="w-5 h-5 text-emerald-600" /> </p>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-1">
             <button onClick={() => { setArenaPhase('intro'); navigate('arena'); }}
               className="relative rounded-2xl p-3 flex flex-col items-center text-center flex-shrink-0 w-28 overflow-hidden active:scale-95 transition-transform"
               style={{ background: 'radial-gradient(130% 130% at 0% 0%, #0f766e, #0a2540)', boxShadow: '0 6px 18px rgba(6,95,70,0.35)' }}>
               <div className="absolute inset-0 arena-grid opacity-50 pointer-events-none" />
-              <div className="flex justify-center mb-2"><Zap className="w-7 h-7" /></div>
+              <div className="flex justify-center mb-2"><Zap className="w-7 h-7 text-white" /></div>
               <p className="relative font-display text-white text-xs leading-tight">Sains Sprint</p>
               <p className="relative text-lime-300 text-[10px] mt-1 font-black tracking-wide">MAIN!</p>
             </button>
-            {[
-              { icon: '🧩', title: 'Cocokkan Bagian Tumbuhan', bab: 'Bab 1', action: () => { resetDrag(); navigate('dragDrop'); } },
-              { icon: '🃏', title: 'Kartu Wujud Zat', bab: 'Bab 2', action: () => { setFlipped(new Set()); navigate('flipCards'); } },
-            ].map((m, i) => (
-              <button key={i} onClick={m.action}
+            {BAB_LIST.flatMap(b => b.interaktif.map(m => ({ ...m, babStr: `Bab ${b.id}` }))).map((m, i) => (
+              <button key={i} onClick={() => { if (m.screen === 'dragDrop') resetDrag(); navigate(m.screen); }}
                 className="bg-white rounded-2xl p-3 flex flex-col items-center text-center shadow-sm flex-shrink-0 w-28 active:scale-95 transition-transform">
-                <span className="text-3xl mb-2">{m.icon}</span>
+                <div className="mb-2 flex justify-center items-center">{m.icon}</div>
                 <p className="font-bold text-gray-700 text-xs leading-tight">{m.title}</p>
-                <p className="text-emerald-600 text-xs mt-1 font-semibold">{m.bab}</p>
+                <p className="text-emerald-600 text-[10px] mt-1 font-semibold">{m.babStr}</p>
               </button>
             ))}
           </div>
