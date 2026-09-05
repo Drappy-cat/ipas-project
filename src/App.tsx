@@ -1228,7 +1228,7 @@ export default function App() {
             </div>
 
             <button onClick={handleLogin} className="w-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white py-4 rounded-xl font-bold mt-8 shadow-lg shadow-indigo-200 active:scale-95 transition-transform flex items-center justify-center gap-2 text-base">
-              Masuk Sekarang <span>→</span>
+              Masuk Sekarang
             </button>
           </div>
         </div>
@@ -1364,7 +1364,7 @@ export default function App() {
             </div>
 
             <button onClick={handleLoginSiswa} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white py-4 rounded-xl font-bold mt-8 shadow-lg shadow-emerald-200 active:scale-95 transition-transform flex items-center justify-center gap-2 text-base">
-              Masuk / Daftar <span>→</span>
+              Masuk / Daftar
             </button>
           </div>
         </div>
