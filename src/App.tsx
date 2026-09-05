@@ -317,6 +317,20 @@ export default function App() {
   const [dbUsers, setDbUsers] = useState<any[]>([]);
   const [localBabs, setLocalBabs] = useState([...BAB_LIST]);
   const [activeMaterial, setActiveMaterial] = useState<any>(null);
+
+  // Responsive Kids Mode: Memperbesar font secara otomatis untuk layar Siswa
+  useEffect(() => {
+    const isStudentScreen = [
+      'loginSiswa', 'studentHome', 'daftarBab', 'detailBab', 'bacaMateri', 'mediaHub',
+      'dragDrop', 'flipCards', 'virtualEksperimen', 'simulasiAir', 'quiz', 'hasilKuis', 'proyekP5', 'arena'
+    ].includes(screen);
+    
+    if (isStudentScreen) {
+      document.documentElement.style.fontSize = '18px'; // Font 12.5% lebih besar (1rem = 18px)
+    } else {
+      document.documentElement.style.fontSize = '16px'; // Normal font size
+    }
+  }, [screen]);
   
   // User Profile State
   const [userProfile, setUserProfile] = useState<{ xp: number; coins: number; completedModules: Record<number, string[]> }>({ xp: 0, coins: 0, completedModules: {} });
