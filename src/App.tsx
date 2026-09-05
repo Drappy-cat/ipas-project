@@ -1286,17 +1286,8 @@ export default function App() {
 
   // ── 1x. LUPA PASSWORD ───────────────────────────────────────────────────────
   if (screen === 'forgotPassword') {
-    const handleReset = async () => {
-      if (!loginUser) {
-        setLoginError('Masukkan email Anda terlebih dahulu.');
-        return;
-      }
-      try {
-        await sendPasswordResetEmail(auth, loginUser);
-        setLoginError('Tautan reset password telah dikirim ke email Anda! Silakan cek kotak masuk atau folder spam.');
-      } catch (error: any) {
-        setLoginError('Gagal mengirim tautan: ' + error.message);
-      }
+    const handleContactIT = () => {
+      window.open('https://wa.me/6281234567890?text=Halo%20Tim%20IT,%20saya%20lupa%20password%20akun%20Guru%20IPAS%20saya.', '_blank');
     };
 
     return (
@@ -1311,30 +1302,19 @@ export default function App() {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col justify-center">
-          <div className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-100 relative">
-            <p className="text-gray-600 text-sm mb-6 text-center">
-              Masukkan email akun Anda. Kami akan mengirimkan tautan untuk mengatur ulang password Anda.
-            </p>
-            
-            {loginError && (
-              <div className={`p-4 rounded-xl text-sm font-bold mb-6 text-center ${loginError.includes('Tautan reset') ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                {loginError}
-              </div>
-            )}
-
-            <div className="space-y-5">
-              <div>
-                <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wide">Email</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-3 text-gray-400"> <Mail className="w-5 h-5" /> </span>
-                  <input type="email" value={loginUser} onChange={e => setLoginUser(e.target.value)} 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all font-medium text-gray-700" placeholder="Masukkan email Anda..." />
-                </div>
-              </div>
+          <div className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-100 relative text-center">
+            <div className="w-16 h-16 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8" />
             </div>
+            <h2 className="font-display text-xl text-gray-800 mb-2">Butuh Bantuan?</h2>
+            <p className="text-gray-600 text-sm mb-8 leading-relaxed">
+              Untuk menjaga keamanan akun Anda, proses atur ulang password hanya dapat dilakukan secara manual oleh <b>Tim IT (Admin)</b>.
+              <br /><br />
+              Silakan hubungi dukungan Tim IT kami melalui WhatsApp untuk mendapatkan akses kembali.
+            </p>
 
-            <button onClick={handleReset} className="w-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white py-4 rounded-xl font-bold mt-8 shadow-lg shadow-indigo-200 active:scale-95 transition-transform flex items-center justify-center gap-2 text-base">
-              Kirim Tautan Reset
+            <button onClick={handleContactIT} className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-4 rounded-xl font-bold shadow-lg shadow-green-200 active:scale-95 transition-all flex items-center justify-center gap-2 text-base">
+              <MessageCircle className="w-5 h-5" /> Hubungi Dukungan Tim IT
             </button>
           </div>
         </div>
