@@ -1625,7 +1625,11 @@ export default function App() {
   }
 
   // ── X. PENGATURAN GURU ───────────────────────────────────────────────────
-  if (screen === 'pengaturanGuru') return (
+  if (screen === 'pengaturanGuru') {
+    const totalMateri = dbMaterials.length;
+    const totalSiswa = dbUsers.length > 0 ? dbUsers.length - 1 : 0;
+    
+    return (
     <div className="h-full bg-[#F0F9FF] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-sky-600 to-indigo-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -1657,7 +1661,7 @@ export default function App() {
                 <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-600"> <Users className="w-4 h-4" /> </div>
                 <p className="text-gray-600 text-sm font-bold">Siswa Aktif</p>
               </div>
-              <p className="text-sky-600 font-display text-xl">24</p>
+              <p className="text-sky-600 font-display text-xl">{totalSiswa}</p>
             </div>
           </div>
         </div>
@@ -1690,7 +1694,8 @@ export default function App() {
       </div>
       <TeacherBottomNav />
     </div>
-  );
+    );
+  }
 
   // ── 3. UPLOAD MATERI ───────────────────────────────────────────────────────
   if (screen === 'uploadMateri') {
