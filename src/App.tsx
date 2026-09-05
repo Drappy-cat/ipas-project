@@ -315,6 +315,7 @@ export default function App() {
   // Firestore Data State
   const [dbMaterials, setDbMaterials] = useState<any[]>([]);
   const [dbUsers, setDbUsers] = useState<any[]>([]);
+  const [localBabs, setLocalBabs] = useState([...BAB_LIST]);
   const [activeMaterial, setActiveMaterial] = useState<any>(null);
   
   // User Profile State
@@ -2260,7 +2261,7 @@ export default function App() {
       return Math.round(sum / students.length);
     };
 
-    const [localBabs, setLocalBabs] = useState([...BAB_LIST]);
+
 
     const moveUp = (idx: number) => {
       if (idx === 0) return;
