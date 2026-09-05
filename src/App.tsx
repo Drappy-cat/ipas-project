@@ -332,6 +332,11 @@ export default function App() {
             const data = docSnap.data();
             setUserProfile({ xp: data.xp || 0, coins: data.coins || 0, completedModules: data.completedModules || {} });
             
+            // Sync displayName to Firestore if missing or updated
+            if (user.displayName && data.displayName !== user.displayName) {
+              await setDoc(docRef, { displayName: user.displayName }, { merge: true });
+            }
+            
             // Auto-login redirect
             setScreens(p => {
               const curr = p[p.length - 1];
@@ -342,7 +347,7 @@ export default function App() {
             });
           } else {
             // New user without profile, we don't know their role yet (will be set during registration/login)
-            const defaultProfile = { xp: 0, coins: 0, completedModules: {} };
+            const defaultProfile = { xp: 0, coins: 0, completedModules: {}, displayName: user.displayName || 'Pengguna Baru' };
             await setDoc(docRef, defaultProfile);
             setUserProfile(defaultProfile);
           }
@@ -1370,7 +1375,7 @@ export default function App() {
           setLoginError('Akun ini terdaftar sebagai Guru. Silakan login melalui portal Guru.');
           return;
         }
-        await setDoc(docRef, { role: 'siswa' }, { merge: true });
+        await setDoc(docRef, { role: 'siswa', displayName: res.user.displayName || 'Siswa' }, { merge: true });
         
         setScreens(['studentHome']);
         setActiveTab('home');
@@ -1396,8 +1401,9 @@ export default function App() {
             return;
           }
           const res = await createUserWithEmailAndPassword(auth, email, loginPass);
-          await updateProfile(res.user, { displayName: loginUser.split('@')[0] });
-          await setDoc(doc(db, 'users', res.user.uid), { role: 'siswa', xp: 0, coins: 0, completedModules: {} }, { merge: true });
+          const name = loginUser.split('@')[0];
+          await updateProfile(res.user, { displayName: name });
+          await setDoc(doc(db, 'users', res.user.uid), { role: 'siswa', xp: 0, coins: 0, completedModules: {}, displayName: name }, { merge: true });
           setScreens(['studentHome']);
           setActiveTab('home');
         } else {
@@ -1409,7 +1415,7 @@ export default function App() {
             setLoginError('Akun ini terdaftar sebagai Guru. Silakan login melalui portal Guru.');
             return;
           }
-          await setDoc(docRef, { role: 'siswa' }, { merge: true });
+          await setDoc(docRef, { role: 'siswa', displayName: res.user.displayName || 'Siswa' }, { merge: true });
           setScreens(['studentHome']);
           setActiveTab('home');
         }
