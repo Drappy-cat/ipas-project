@@ -2737,7 +2737,7 @@ export default function App() {
                 <div className="bg-emerald-100 rounded-2xl px-5 py-3 text-center"><p className="text-emerald-700 font-black text-xl">+40</p><p className="text-emerald-500 text-xs">XP</p></div>
                 <div className="bg-yellow-100 rounded-2xl px-5 py-3 text-center"><p className="text-yellow-600 font-black text-xl">+15</p><p className="text-yellow-500 text-xs"> <Coins className="w-5 h-5" /> </p></div>
               </div>
-              <button onClick={() => { resetDrag(); setScreens(['detailBab']); }}
+              <button onClick={() => { resetDrag(); goBack(); }}
                 className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold">Kembali ke Bab →</button>
             </div>
           ) : (
