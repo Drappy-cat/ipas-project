@@ -1644,36 +1644,41 @@ export default function App() {
             </div>
           </div>
           <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3">
-            <div>
-              <p className="text-gray-400 text-xs font-bold uppercase mb-1">Asal Sekolah</p>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400"> <School className="w-5 h-5" /> </span>
-                <p className="text-gray-700 font-medium">SDN 01 Nusantara Raya</p>
+            <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600"> <BookOpen className="w-4 h-4" /> </div>
+                <p className="text-gray-600 text-sm font-bold">Modul Dibuat</p>
               </div>
+              <p className="text-indigo-600 font-display text-xl">{totalMateri}</p>
             </div>
-            <div>
-              <p className="text-gray-400 text-xs font-bold uppercase mb-1">NIP / ID Pegawai</p>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400"> <Hash className="w-5 h-5" /> </span>
-                <p className="text-gray-700 font-medium">19880312 201001 2 004</p>
+            <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-600"> <Users className="w-4 h-4" /> </div>
+                <p className="text-gray-600 text-sm font-bold">Siswa Aktif</p>
               </div>
+              <p className="text-sky-600 font-display text-xl">24</p>
             </div>
           </div>
         </div>
 
-        {/* Ubah Password */}
+        {/* Bantuan & Panduan */}
         <div className="bg-white rounded-3xl p-5 shadow-sm">
-          <p className="font-display text-gray-800 mb-4">Keamanan Akun</p>
+          <p className="font-display text-gray-800 mb-4 flex items-center gap-2"><HelpCircle className="w-5 h-5 text-sky-500" /> Pusat Panduan</p>
           <div className="space-y-3">
-            <div>
-              <label className="text-gray-500 text-xs font-bold block mb-1">Password Saat Ini</label>
-              <input type="password" placeholder="••••••••" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-sky-500" />
-            </div>
-            <div>
-              <label className="text-gray-500 text-xs font-bold block mb-1">Password Baru</label>
-              <input type="password" placeholder="Minimal 8 karakter" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-sky-500" />
-            </div>
-            <button onClick={() => alert('Password berhasil diubah!')} className="w-full bg-sky-100 text-sky-700 font-bold py-3 rounded-xl mt-2 active:scale-95 transition-transform text-sm">Simpan Password Baru</button>
+            <button onClick={() => alert('Membuka PDF Panduan Penggunaan...')} className="w-full bg-gray-50 hover:bg-sky-50 border border-gray-100 hover:border-sky-200 text-left px-4 py-3 rounded-xl flex items-center justify-between group transition-colors">
+              <div className="flex items-center gap-3">
+                <BookOpen className="w-5 h-5 text-gray-400 group-hover:text-sky-500 transition-colors" />
+                <span className="text-sm font-bold text-gray-700 group-hover:text-sky-700">Buku Panduan Guru</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-sky-500" />
+            </button>
+            <button onClick={() => alert('Membuka kontak tim support...')} className="w-full bg-gray-50 hover:bg-indigo-50 border border-gray-100 hover:border-indigo-200 text-left px-4 py-3 rounded-xl flex items-center justify-between group transition-colors">
+              <div className="flex items-center gap-3">
+                <MessageCircle className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 transition-colors" />
+                <span className="text-sm font-bold text-gray-700 group-hover:text-indigo-700">Hubungi Tim Bantuan</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-indigo-500" />
+            </button>
           </div>
         </div>
 
