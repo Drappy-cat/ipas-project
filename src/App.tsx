@@ -1114,7 +1114,7 @@ export default function App() {
         </button>
       </div>
       <div className="mt-8 text-center opacity-80">
-        <p className="text-white text-xs font-bold mb-1">Hak Cipta  <Copyright className="w-5 h-5" />  2026</p>
+        <p className="text-white text-xs font-bold mb-1 flex items-center justify-center gap-1">Hak Cipta <Copyright className="w-4 h-4 text-emerald-100" /> 2026</p>
         <p className="text-emerald-100 text-[10px] leading-relaxed max-w-[250px] mx-auto">
           Aplikasi ini dikembangkan sebagai bagian dari <br />
           <span className="font-semibold text-white">Program Kerja KKN Universitas Negeri Surabaya (UNESA)</span>
