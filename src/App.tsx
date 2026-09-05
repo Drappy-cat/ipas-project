@@ -1,11 +1,12 @@
+import { Zap, Leaf, Puzzle, GalleryVertical, School, FileText, Microscope, Telescope, ClipboardList, BarChart2, PartyPopper, User, Lightbulb, Gamepad2, Sparkles, GraduationCap, Waves, TestTube, Star, Bug, Sun, Upload, Rocket, CheckCircle, ShoppingCart, FileEdit, Eye, AlertTriangle, RefreshCw, Search, Lock, Handshake, Map, Box, Smile, Target, Wind, Film, Image, Library, MessageCircle, Home, TrendingUp, Settings, Battery, Globe, Copyright, Hand, Users, BookOpen, PlayCircle, Pin, Bird, Coins, Cloud, CloudRain, Trophy, Heart, Hourglass, Ear, Wrench, Scissors, Flame, Egg, TreePine, Plug, Magnet, Cat, Sunrise, Store, Droplet, ToyBrick, DollarSign, Brain, Mail, Key, Folder, Hash, PenTool, Paperclip, Bell, MoveHorizontal, Bot, BadgePlus, Bookmark, Flower, Pointer, Circle, Mountain, CloudSun, Gift, Dumbbell, Palette, Timer, Link, Medal, Gem } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { auth, db } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, addDoc, getDocs, query, where, serverTimestamp, doc, setDoc, getDoc } from 'firebase/firestore';
 // ─── Types ─────────────────────────────────────────────────────────────────
 type Screen =
   | 'homepage' | 'splash' | 'onboarding'
-  | 'roleSelect' | 'loginGuru' | 'loginSiswa'
+  | 'roleSelect' | 'loginGuru' | 'loginSiswa' | 'forgotPassword'
   | 'teacherDash' | 'uploadMateri' | 'buatInteraktif' | 'progressSiswa' | 'kelolaBab' | 'pengaturanGuru'
   | 'studentHome' | 'daftarBab' | 'detailBab'
   | 'bacaMateri' | 'mediaHub'
@@ -68,7 +69,7 @@ const SimpleRichTextEditor = ({ value, onChange }: { value: string, onChange: (v
 // ─── Kurikulum Merdeka · IPAS Kelas 3 ──────────────────────────────────────
 const BAB_LIST = [
   {
-    id: 1, emoji: '👤',
+    id: 1, emoji: '🧑',
     judul: 'Keajaiban Tubuhku',
     gradient: 'from-amber-500 to-orange-600',
     cp: 'Peserta didik mengenal bagian tubuh manusia beserta fungsinya.',
@@ -160,7 +161,7 @@ const MEDIA_TEMPLATES = [
 ];
 
 // Drag-drop data — Bab 1: Keajaiban Tubuhku
-const PLANT_LEFT = ['👀 Mata', '👂 Telinga', '👃 Hidung', '👄 Mulut'];
+const PLANT_LEFT = ['👁️ Mata', '👂 Telinga', '👃 Hidung', '👄 Mulut'];
 const PLANT_RIGHT = [
   'Untuk mencicipi makanan dan berbicara',
   'Untuk mendengarkan suara sekitar',
@@ -182,58 +183,58 @@ const FLIP_CARDS = [
 
 // Virtual experiment — Bab 6: Energi
 const EXP_STEPS = [
-  { step: 1, icon: '🔧', title: 'Siapkan Alat & Bahan', body: 'Siapkan: lilin, korek api, kertas lipat, gunting, dan benang secukupnya.', tip: '⚠️ Mintalah bantuan guru saat menyalakan api.' },
-  { step: 2, icon: '✂️', title: 'Buat Spiral Kertas', body: 'Gunting kertas lipat melingkar hingga membentuk spiral. Ikat ujungnya dengan benang.', tip: '💡 Pastikan potongan kertas tidak terlalu tebal.' },
-  { step: 3, icon: '🕯️', title: 'Nyalakan Lilin', body: 'Nyalakan lilin. Tempatkan kertas spiral di atas api (jangan sampai menyentuh api!).', tip: '📋 Amati apa yang terjadi pada kertas.' },
-  { step: 4, icon: '🔄', title: 'Catat Hasil', body: 'Kertas spiral berputar-putar dengan sendirinya ketika berada di atas nyala api lilin.', tip: '🔍 Kenapa kertasnya bisa bergerak berputar?' },
-  { step: 5, icon: '🎯', title: 'Simpulkan!', body: 'Energi panas dari lilin membuat udara bergerak (kinetik), sehingga kertas ikut berputar. Terjadi perubahan energi!', tip: '🌟 Kamu sudah menjadi ilmuwan cilik! Luar biasa!' },
+  { step: 1, icon: <Wrench className="w-5 h-5" />, title: 'Siapkan Alat & Bahan', body: 'Siapkan: lilin, korek api, kertas lipat, gunting, dan benang secukupnya.', tip: '• ️ Mintalah bantuan guru saat menyalakan api.' },
+  { step: 2, icon: '• ️', title: 'Buat Spiral Kertas', body: 'Gunting kertas lipat melingkar hingga membentuk spiral. Ikat ujungnya dengan benang.', tip: '• Pastikan potongan kertas tidak terlalu tebal.' },
+  { step: 3, icon: '• ️', title: 'Nyalakan Lilin', body: 'Nyalakan lilin. Tempatkan kertas spiral di atas api (jangan sampai menyentuh api!).', tip: '• Amati apa yang terjadi pada kertas.' },
+  { step: 4, icon: <RefreshCw className="w-5 h-5" />, title: 'Catat Hasil', body: 'Kertas spiral berputar-putar dengan sendirinya ketika berada di atas nyala api lilin.', tip: '• Kenapa kertasnya bisa bergerak berputar?' },
+  { step: 5, icon: <Target className="w-5 h-5" />, title: 'Simpulkan!', body: 'Energi panas dari lilin membuat udara bergerak (kinetik), sehingga kertas ikut berputar. Terjadi perubahan energi!', tip: '• Kamu sudah menjadi ilmuwan cilik! Luar biasa!' },
 ];
 
 // Simulasi Metamorfosis (Bab 4)
 const SIM_STEPS = [
-  { label: 'Telur', icon: '🥚', color: 'text-gray-500', desc: 'Kupu-kupu betina bertelur di daun. Telur ini kecil dan menempel kuat.' },
-  { label: 'Ulat', icon: '🐛', color: 'text-green-600', desc: 'Telur menetas menjadi ulat. Ulat rakus dan terus memakan daun untuk tumbuh.' },
-  { label: 'Kepompong', icon: '🎋', color: 'text-amber-700', desc: 'Ulat membungkus dirinya menjadi kepompong. Di dalam sini, tubuhnya berubah bentuk.' },
-  { label: 'Kupu-Kupu', icon: '🦋', color: 'text-blue-500', desc: 'Kupu-kupu keluar dari kepompong dengan sayap indah, siap terbang mencari nektar.' },
+  { label: 'Telur', icon: <Egg className="w-5 h-5" />, color: 'text-gray-500', desc: 'Kupu-kupu betina bertelur di daun. Telur ini kecil dan menempel kuat.' },
+  { label: 'Ulat', icon: <Bug className="w-5 h-5" />, color: 'text-green-600', desc: 'Telur menetas menjadi ulat. Ulat rakus dan terus memakan daun untuk tumbuh.' },
+  { label: 'Kepompong', icon: <TreePine className="w-5 h-5" />, color: 'text-amber-700', desc: 'Ulat membungkus dirinya menjadi kepompong. Di dalam sini, tubuhnya berubah bentuk.' },
+  { label: 'Kupu-Kupu', icon: <Bug className="w-5 h-5" />, color: 'text-blue-500', desc: 'Kupu-kupu keluar dari kepompong dengan sayap indah, siap terbang mencari nektar.' },
 ];
 
 // IPAS Kuis (lintas bab)
 const QUIZ_IPAS = [
-  { q: 'Bagian tubuh yang berfungsi untuk melihat adalah...', opts: ['Hidung', 'Telinga', 'Mata', 'Kulit'], correct: 2, img: '👀' },
-  { q: 'Perubahan ulat menjadi kupu-kupu disebut...', opts: ['Mencair', 'Metamorfosis', 'Menetas', 'Tumbuh'], correct: 1, img: '🦋' },
-  { q: 'Energi yang dihasilkan oleh setrika adalah energi...', opts: ['Panas', 'Cahaya', 'Bunyi', 'Gerak'], correct: 0, img: '🔌' },
-  { q: 'Es batu yang dibiarkan di tempat terbuka akan...', opts: ['Membeku', 'Menguap', 'Mengkristal', 'Mencair'], correct: 3, img: '🧊' },
-  { q: 'Membeli barang yang benar-benar kita perlukan disebut belanja...', opts: ['Keinginan', 'Kebutuhan', 'Mewah', 'Boros'], correct: 1, img: '🛒' },
-  { q: 'Bagian tumbuhan yang bertugas menyerap air dari dalam tanah adalah...', opts: ['Daun', 'Akar', 'Batang', 'Bunga'], correct: 1, img: '🌱' },
-  { q: 'Proses tumbuhan membuat makanannya sendiri dengan bantuan cahaya matahari disebut...', opts: ['Respirasi', 'Transpirasi', 'Fotosintesis', 'Metabolisme'], correct: 2, img: '☀️' },
-  { q: 'Benda yang dapat ditarik oleh magnet adalah...', opts: ['Kayu', 'Kertas', 'Besi', 'Plastik'], correct: 2, img: '🧲' },
-  { q: 'Contoh hewan karnivora (pemakan daging) adalah...', opts: ['Sapi', 'Harimau', 'Kambing', 'Kelinci'], correct: 1, img: '🐅' },
-  { q: 'Perubahan wujud dari cair menjadi gas saat air mendidih disebut...', opts: ['Menguap', 'Mencair', 'Membeku', 'Menyublim'], correct: 0, img: '♨️' },
-  { q: 'Matahari terbit dari sebelah...', opts: ['Timur', 'Barat', 'Utara', 'Selatan'], correct: 0, img: '🌅' },
-  { q: 'Fungsi utama daun pada tumbuhan adalah...', opts: ['Menyerap air', 'Tempat fotosintesis', 'Menyokong batang', 'Menarik serangga'], correct: 1, img: '🍃' },
-  { q: 'Benda langit yang bersinar sendiri dan menjadi pusat tata surya adalah...', opts: ['Bulan', 'Bintang', 'Matahari', 'Meteor'], correct: 2, img: '🌞' },
-  { q: 'Tempat bertemunya penjual dan pembeli untuk melakukan jual beli disebut...', opts: ['Sekolah', 'Pasar', 'Rumah Sakit', 'Taman'], correct: 1, img: '🏪' },
+  { q: 'Bagian tubuh yang berfungsi untuk melihat adalah...', opts: ['Hidung', 'Telinga', 'Mata', 'Kulit'], correct: 2, img: <Eye className="w-5 h-5" /> },
+  { q: 'Perubahan ulat menjadi kupu-kupu disebut...', opts: ['Mencair', 'Metamorfosis', 'Menetas', 'Tumbuh'], correct: 1, img: <Bug className="w-5 h-5" /> },
+  { q: 'Energi yang dihasilkan oleh setrika adalah energi...', opts: ['Panas', 'Cahaya', 'Bunyi', 'Gerak'], correct: 0, img: <Plug className="w-5 h-5" /> },
+  { q: 'Es batu yang dibiarkan di tempat terbuka akan...', opts: ['Membeku', 'Menguap', 'Mengkristal', 'Mencair'], correct: 3, img: <Box className="w-5 h-5" /> },
+  { q: 'Membeli barang yang benar-benar kita perlukan disebut belanja...', opts: ['Keinginan', 'Kebutuhan', 'Mewah', 'Boros'], correct: 1, img: <ShoppingCart className="w-5 h-5" /> },
+  { q: 'Bagian tumbuhan yang bertugas menyerap air dari dalam tanah adalah...', opts: ['Daun', 'Akar', 'Batang', 'Bunga'], correct: 1, img: <Leaf className="w-5 h-5" /> },
+  { q: 'Proses tumbuhan membuat makanannya sendiri dengan bantuan cahaya matahari disebut...', opts: ['Respirasi', 'Transpirasi', 'Fotosintesis', 'Metabolisme'], correct: 2, img: <Sun className="w-5 h-5" /> },
+  { q: 'Benda yang dapat ditarik oleh magnet adalah...', opts: ['Kayu', 'Kertas', 'Besi', 'Plastik'], correct: 2, img: <Magnet className="w-5 h-5" /> },
+  { q: 'Contoh hewan karnivora (pemakan daging) adalah...', opts: ['Sapi', 'Harimau', 'Kambing', 'Kelinci'], correct: 1, img: <Cat className="w-5 h-5" /> },
+  { q: 'Perubahan wujud dari cair menjadi gas saat air mendidih disebut...', opts: ['Menguap', 'Mencair', 'Membeku', 'Menyublim'], correct: 0, img: '• ️' },
+  { q: 'Matahari terbit dari sebelah...', opts: ['Timur', 'Barat', 'Utara', 'Selatan'], correct: 0, img: <Sunrise className="w-5 h-5" /> },
+  { q: 'Fungsi utama daun pada tumbuhan adalah...', opts: ['Menyerap air', 'Tempat fotosintesis', 'Menyokong batang', 'Menarik serangga'], correct: 1, img: <Leaf className="w-5 h-5" /> },
+  { q: 'Benda langit yang bersinar sendiri dan menjadi pusat tata surya adalah...', opts: ['Bulan', 'Bintang', 'Matahari', 'Meteor'], correct: 2, img: <Sun className="w-5 h-5" /> },
+  { q: 'Tempat bertemunya penjual dan pembeli untuk melakukan jual beli disebut...', opts: ['Sekolah', 'Pasar', 'Rumah Sakit', 'Taman'], correct: 1, img: <Store className="w-5 h-5" /> },
   { q: 'Semboyan negara kita "Bhinneka Tunggal Ika" memiliki arti...', opts: ['Bersatu kita teguh', 'Berbeda-beda tetapi tetap satu jua', 'Satu Nusa Satu Bangsa', 'Merdeka atau Mati'], correct: 1, img: '🇮🇩' }
 ];
 
 // SAINS SPRINT — arena adu-cepat pernyataan Benar/Salah (lintas bab IPAS)
 const ARENA_STATEMENTS = [
-  { s: 'Hidung berfungsi untuk mencium bau.', benar: true, bab: 'Tubuh', emoji: '👃' },
-  { s: 'Air termasuk benda padat.', benar: false, bab: 'Wujud Zat', emoji: '💧' },
-  { s: 'Kepompong adalah salah satu fase dalam daur hidup kupu-kupu.', benar: true, bab: 'Siklus Hidup', emoji: '🦋' },
-  { s: 'Kipas angin menghasilkan energi panas.', benar: false, bab: 'Energi', emoji: '💨' },
-  { s: 'Mainan adalah contoh kebutuhan utama.', benar: false, bab: 'Kebutuhan', emoji: '🧸' },
-  { s: 'Tolong menolong termasuk perbuatan terpuji.', benar: true, bab: 'Berbagi', emoji: '🤝' },
-  { s: 'Matahari merupakan sumber energi.', benar: true, bab: 'Energi', emoji: '☀️' },
-  { s: 'Benda gas tidak memiliki bentuk.', benar: true, bab: 'Wujud Zat', emoji: '💨' },
-  { s: 'Uang digunakan sebagai alat tukar.', benar: true, bab: 'Belanja', emoji: '💵' },
-  { s: 'Denah membantu kita mencari lokasi.', benar: true, bab: 'Penjelajah', emoji: '🗺️' },
+  { s: 'Hidung berfungsi untuk mencium bau.', benar: true, bab: 'Tubuh', emoji: <Smile className="w-5 h-5" /> },
+  { s: 'Air termasuk benda padat.', benar: false, bab: 'Wujud Zat', emoji: <Droplet className="w-5 h-5" /> },
+  { s: 'Kepompong adalah salah satu fase dalam daur hidup kupu-kupu.', benar: true, bab: 'Siklus Hidup', emoji: <Bug className="w-5 h-5" /> },
+  { s: 'Kipas angin menghasilkan energi panas.', benar: false, bab: 'Energi', emoji: <Wind className="w-5 h-5" /> },
+  { s: 'Mainan adalah contoh kebutuhan utama.', benar: false, bab: 'Kebutuhan', emoji: <ToyBrick className="w-5 h-5" /> },
+  { s: 'Tolong menolong termasuk perbuatan terpuji.', benar: true, bab: 'Berbagi', emoji: <Handshake className="w-5 h-5" /> },
+  { s: 'Matahari merupakan sumber energi.', benar: true, bab: 'Energi', emoji: <Sun className="w-5 h-5" /> },
+  { s: 'Benda gas tidak memiliki bentuk.', benar: true, bab: 'Wujud Zat', emoji: <Wind className="w-5 h-5" /> },
+  { s: 'Uang digunakan sebagai alat tukar.', benar: true, bab: 'Belanja', emoji: <DollarSign className="w-5 h-5" /> },
+  { s: 'Denah membantu kita mencari lokasi.', benar: true, bab: 'Penjelajah', emoji: '• ️' },
 ];
 
 const UPLOADED_FILES = [
-  { icon: '📄', name: 'Rangkuman_Bab1_Tubuhku.pdf', size: '1.2 MB', bab: 'Bab 1', status: 'Aktif' },
-  { icon: '🎬', name: 'Video_Siklus_Kupu_Kupu.mp4', size: '45 MB', bab: 'Bab 4', status: 'Aktif' },
-  { icon: '🖼️', name: 'Infografis_Wujud_Zat.png', size: '800 KB', bab: 'Bab 8', status: 'Draf' },
+  { icon: <FileText className="w-5 h-5" />, name: 'Rangkuman_Bab1_Tubuhku.pdf', size: '1.2 MB', bab: 'Bab 1', status: 'Aktif' },
+  { icon: <Film className="w-5 h-5" />, name: 'Video_Siklus_Kupu_Kupu.mp4', size: '45 MB', bab: 'Bab 4', status: 'Aktif' },
+  { icon: '• ️', name: 'Infografis_Wujud_Zat.png', size: '800 KB', bab: 'Bab 8', status: 'Draf' },
 ];
 
 // ─── Scroll Animation Component ───────────────────────────────────────────────
@@ -513,39 +514,39 @@ export default function App() {
   const ONBOARD_SLIDES = [
     {
       bg: 'from-emerald-600 via-teal-600 to-cyan-700',
-      icon: '🔬',
+      icon: <Microscope className="w-5 h-5" />,
       iconBg: 'bg-white/20',
       tag: 'IPAS Kelas 3 · Kurikulum Merdeka',
       title: 'Belajar IPAS\nJadi Seru!',
       body: 'Platform belajar digital yang dirancang khusus untuk siswa Kelas 3 SD — sesuai Kurikulum Merdeka 2024.',
-      detail: ['📚 8 Bab Pembelajaran', '🎮 Media Interaktif', '🌱 Proyek P5'],
+      detail: ['• 8 Bab Pembelajaran', ' <Gamepad2 className="w-5 h-5" />  Media Interaktif', '• Proyek P5'],
     },
     {
       bg: 'from-violet-600 via-purple-600 to-indigo-700',
-      icon: '✨',
+      icon: <Sparkles className="w-5 h-5" />,
       iconBg: 'bg-white/20',
       tag: 'Untuk Guru',
       title: 'Guru Lebih\nMudah Mengajar',
       body: 'Upload materi PDF, video, dan gambar. Buat kuis, kartu konsep, simulasi virtual, dan media interaktif langsung dari aplikasi.',
-      detail: ['📤 Upload PDF & Video', '🧩 Buat Media Interaktif', '📊 Pantau Progress Siswa'],
+      detail: ['• Upload PDF & Video', '• Buat Media Interaktif', ' <BarChart2 className="w-5 h-5" />  Pantau Progress Siswa'],
     },
     {
       bg: 'from-green-600 via-emerald-600 to-teal-700',
-      icon: '🧑‍🎓',
+      icon: <BookOpen className="w-5 h-5" />,
       iconBg: 'bg-white/20',
       tag: 'Untuk Siswa',
       title: 'Eksplorasi,\nCoba & Pahami!',
       body: 'Pelajari materi lewat video interaktif, percobaan virtual, simulasi, dan kartu konsep yang menyenangkan.',
-      detail: ['🔭 Percobaan Virtual', '🃏 Kartu Konsep Flip', '🌊 Simulasi Siklus Air'],
+      detail: ['• Percobaan Virtual', '• Kartu Konsep Flip', '• Simulasi Siklus Air'],
     },
     {
       bg: 'from-amber-500 via-orange-500 to-rose-600',
-      icon: '🌱',
+      icon: <Leaf className="w-5 h-5" />,
       iconBg: 'bg-white/20',
       tag: 'Proyek Nyata',
       title: 'Belajar dengan\nProyek P5',
       body: 'Kuatkan Profil Pelajar Pancasila melalui proyek nyata — dari perencanaan, riset, kreasi, hingga presentasi!',
-      detail: ['📋 Fase Proyek Terstruktur', '🔍 Observasi Lapangan', '🗣️ Presentasi Karya'],
+      detail: ['• Fase Proyek Terstruktur', '• Observasi Lapangan', '• ️ Presentasi Karya'],
     },
   ];
 
@@ -613,10 +614,10 @@ export default function App() {
   const StudentBottomNav = () => (
     <div className="bg-white border-t border-gray-100 px-1 py-2 flex justify-around items-center flex-shrink-0">
       {[
-        { id: 'home', icon: '🏠', label: 'Beranda' },
-        { id: 'bab', icon: '📚', label: 'Bab' },
-        { id: 'aktivitas', icon: '🎮', label: 'Aktivitas' },
-        { id: 'proyek', icon: '🌱', label: 'Proyek P5' },
+        { id: 'home', icon: <Home className="w-5 h-5" />, label: 'Beranda' },
+        { id: 'bab', icon: <Library className="w-5 h-5" />, label: 'Bab' },
+        { id: 'aktivitas', icon: <Gamepad2 className="w-5 h-5" />, label: 'Aktivitas' },
+        { id: 'proyek', icon: <Leaf className="w-5 h-5" />, label: 'Proyek P5' },
       ].map(t => {
         const active = activeTab === t.id;
         return (
@@ -631,11 +632,11 @@ export default function App() {
   );
 
   const TeacherBottomNav = () => (
-    <div className="bg-white border-t border-gray-100 px-1 py-2 flex justify-around items-center flex-shrink-0">
+    <div className="bg-white border-t border-gray-100 px-2 py-2 flex justify-around items-center flex-shrink-0">
       {[
-        { id: 'home', icon: '🏠', label: 'Home' },
-        { id: 'statistik', icon: '📈', label: 'Statistik' },
-        { id: 'pengaturan', icon: '⚙️', label: 'Pengaturan' },
+        { id: 'home', icon: <Home className="w-5 h-5" />, label: 'Home' },
+        { id: 'statistik', icon: <TrendingUp className="w-5 h-5" />, label: 'Statistik' },
+        { id: 'pengaturan', icon: <Settings className="w-5 h-5" />, label: 'Pengaturan' },
       ].map(t => {
         const isActive = 
           (t.id === 'home' && screen === 'teacherDash') ||
@@ -650,9 +651,9 @@ export default function App() {
 
         return (
           <button key={t.id} onClick={onClick}
-            className={`flex flex-col items-center gap-1 px-8 py-2 rounded-2xl transition-all ${isActive ? 'bg-indigo-100' : ''}`}>
-            <span className="text-2xl">{t.icon}</span>
-            <span className={`text-[10px] font-bold ${isActive ? 'text-indigo-700' : 'text-gray-400'}`}>{t.label}</span>
+            className={`flex flex-col items-center gap-1 px-8 py-2 rounded-2xl transition-all ${isActive ? 'bg-sky-50' : ''}`}>
+            <span className={`${isActive ? 'text-sky-600' : 'text-gray-400'}`}>{t.icon}</span>
+            <span className={`text-[10px] font-bold ${isActive ? 'text-sky-600' : 'text-gray-400'}`}>{t.label}</span>
           </button>
         );
       })}
@@ -686,10 +687,10 @@ export default function App() {
               
               {/* Arc Elements */}
               {[
-                { e: '🌿', label: 'Tumbuhan', a: -70, r: 110 },
-                { e: '🧪', label: 'Wujud Zat', a: -20, r: 125 },
-                { e: '⚡', label: 'Gaya', a: 30, r: 120 },
-                { e: '🔋', label: 'Energi', a: 75, r: 108 },
+                { e: <Leaf className="w-5 h-5" />, label: 'Tumbuhan', a: -70, r: 110 },
+                { e: <TestTube className="w-5 h-5" />, label: 'Wujud Zat', a: -20, r: 125 },
+                { e: <Zap className="w-5 h-5" />, label: 'Gaya', a: 30, r: 120 },
+                { e: <Battery className="w-5 h-5" />, label: 'Energi', a: 75, r: 108 },
               ].map((c, i) => (
                 <div key={i} className="absolute flex flex-col items-center gap-1"
                   style={{
@@ -706,7 +707,7 @@ export default function App() {
               <div className="relative z-10 flex flex-col items-center mt-6">
                 <div className="w-24 h-24 rounded-[2rem] flex items-center justify-center text-5xl mb-2 animate-pulse-glow"
                   style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.35)' }}>
-                  🌍
+                   <Globe className="w-5 h-5" /> 
                 </div>
                 <div className="flex">
                   {'IPAS'.split('').map((ch, i) => (
@@ -721,7 +722,7 @@ export default function App() {
                 <span className="text-emerald-200 text-[10px] font-black tracking-widest">KURIKULUM MERDEKA 2024</span>
               </div>
               <h2 className="font-display text-white text-3xl leading-tight mb-2">
-                Jelajah Ilmu Alam<br/>& Sosial 🎉
+                Jelajah Ilmu Alam<br/>& Sosial  <PartyPopper className="w-5 h-5" /> 
               </h2>
               <p className="text-white/70 text-xs leading-relaxed font-medium px-4">
                 Platform interaktif untuk guru dan siswa. Belajar jadi petualangan seru!
@@ -738,14 +739,14 @@ export default function App() {
               <div className="relative z-10 flex flex-col items-center">
                 <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-4 shadow-2xl"
                   style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.3)', animation: 'float 3s ease-in-out infinite' }}>
-                  👩‍🏫
+                   <User className="w-5 h-5" /> ‍ <School className="w-5 h-5" /> 
                 </div>
 
                 {[
-                  { icon: '📤', text: 'Upload Materi', color: 'from-sky-500 to-blue-600', pos: '-top-4 -left-28', delay: '0s' },
-                  { icon: '✨', text: 'Buat Interaktif', color: 'from-violet-500 to-purple-600', pos: 'top-0 -right-28', delay: '0.2s' },
-                  { icon: '📊', text: 'Pantau Siswa', color: 'from-emerald-500 to-teal-600', pos: 'bottom-0 -left-24', delay: '0.4s' },
-                  { icon: '🧩', text: 'Kuis & Game', color: 'from-amber-500 to-orange-500', pos: 'bottom-4 -right-24', delay: '0.6s' },
+                  { icon: <Upload className="w-5 h-5" />, text: 'Upload Materi', color: 'from-sky-500 to-blue-600', pos: '-top-4 -left-28', delay: '0s' },
+                  { icon: <Sparkles className="w-5 h-5" />, text: 'Buat Interaktif', color: 'from-violet-500 to-purple-600', pos: 'top-0 -right-28', delay: '0.2s' },
+                  { icon: <BarChart2 className="w-5 h-5" />, text: 'Pantau Siswa', color: 'from-emerald-500 to-teal-600', pos: 'bottom-0 -left-24', delay: '0.4s' },
+                  { icon: <Puzzle className="w-5 h-5" />, text: 'Kuis & Game', color: 'from-amber-500 to-orange-500', pos: 'bottom-4 -right-24', delay: '0.6s' },
                 ].map((f, i) => (
                   <div key={i} className={`absolute ${f.pos} bg-gradient-to-r ${f.color} rounded-2xl px-2.5 py-2 flex items-center gap-1.5 shadow-xl`}
                     style={{ animation: `floatX ${3 + i * 0.3}s ease-in-out infinite ${f.delay}`, minWidth: 110 }}>
@@ -761,7 +762,7 @@ export default function App() {
                 <span className="text-violet-200 text-[10px] font-black tracking-widest">UNTUK GURU</span>
               </div>
               <h2 className="font-display text-white text-3xl leading-tight mb-2">
-                Manajemen Kelas<br/>Lebih Mudah 📋
+                Manajemen Kelas<br/>Lebih Mudah  <ClipboardList className="w-5 h-5" /> 
               </h2>
               <p className="text-white/70 text-xs leading-relaxed px-4">
                 Upload PDF, video. Buat kuis & simulasi. Pantau progress seluruh siswa real-time.
@@ -774,10 +775,10 @@ export default function App() {
             <div className="flex-1 relative flex items-center justify-center px-6 pt-12">
               <div className="grid grid-cols-2 gap-3 z-10 w-full max-w-sm">
                 {[
-                  { icon: '🧩', title: 'Drag & Drop', sub: 'Cocokkan bagian', color: 'from-green-500 to-emerald-600', delay: '0s' },
+                  { icon: <Puzzle className="w-5 h-5" />, title: 'Drag & Drop', sub: 'Cocokkan bagian', color: 'from-green-500 to-emerald-600', delay: '0s' },
                   { icon: '🃏', title: 'Kartu Konsep', sub: 'Balik & pelajari', color: 'from-blue-500 to-cyan-500', delay: '0.15s' },
-                  { icon: '🔭', title: 'Eksperimen', sub: 'Coba virtual', color: 'from-violet-500 to-purple-600', delay: '0.3s' },
-                  { icon: '🌊', title: 'Simulasi Air', sub: 'Animasi interaktif', color: 'from-sky-500 to-blue-600', delay: '0.45s' },
+                  { icon: <Telescope className="w-5 h-5" />, title: 'Eksperimen', sub: 'Coba virtual', color: 'from-violet-500 to-purple-600', delay: '0.3s' },
+                  { icon: <Waves className="w-5 h-5" />, title: 'Simulasi Air', sub: 'Animasi interaktif', color: 'from-sky-500 to-blue-600', delay: '0.45s' },
                 ].map((a, i) => (
                   <div key={i} className={`bg-gradient-to-br ${a.color} rounded-2xl p-3 shadow-xl`} style={{ animation: `stagger-in 0.5s ease-out ${a.delay} both` }}>
                     <span className="text-2xl block mb-1">{a.icon}</span>
@@ -793,7 +794,7 @@ export default function App() {
                 <span className="text-sky-200 text-[10px] font-black tracking-widest">UNTUK SISWA</span>
               </div>
               <h2 className="font-display text-white text-3xl leading-tight mb-2">
-                Belajar Sambil<br/>Bermain! 🎮
+                Belajar Sambil<br/>Bermain!  <Gamepad2 className="w-5 h-5" /> 
               </h2>
               <p className="text-white/70 text-xs leading-relaxed px-4">
                 Video interaktif, percobaan virtual, simulasi — belajar tidak lagi membosankan.
@@ -804,7 +805,7 @@ export default function App() {
           {/* Slide 4: Final */}
           <div className={`absolute inset-0 flex flex-col transition-opacity duration-500 ${onboardSlide === 3 ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'}`}>
             <div className="flex-1 relative flex flex-col items-center justify-center pt-8">
-              {['🌿', '⭐', '🔬', '✦', '🧪', '✦', '⚡', '🌟'].map((p, i) => (
+              {[<Leaf className="w-5 h-5" />, <Star className="w-5 h-5" />, <Microscope className="w-5 h-5" />, '✦', <TestTube className="w-5 h-5" />, '✦', <Zap className="w-5 h-5" />, <Star className="w-5 h-5" />].map((p, i) => (
                 <div key={i} className="absolute text-xl select-none"
                   style={{ left: `${15 + i * 10}%`, top: `${20 + (i % 3) * 20}%`, animation: `floatX ${2.5 + i * 0.4}s ease-in-out infinite ${i * 0.2}s`, opacity: 0.6 }}>{p}</div>
               ))}
@@ -812,7 +813,7 @@ export default function App() {
               <div className="relative z-10 text-center mt-6">
                 <div className="w-24 h-24 rounded-full flex items-center justify-center text-5xl mx-auto mb-4 shadow-2xl"
                   style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(20px)', border: '2px solid rgba(255,255,255,0.4)', animation: 'float 3s ease-in-out infinite' }}>
-                  🚀
+                   <Rocket className="w-5 h-5" /> 
                 </div>
                 
                 <div className="flex flex-wrap justify-center gap-1.5 mb-4 max-w-[250px] mx-auto">
@@ -828,7 +829,7 @@ export default function App() {
 
             <div className="px-6 pb-10 text-center flex-shrink-0">
               <h2 className="font-display text-white text-3xl leading-tight mb-2">
-                Ayo Mulai<br/>Sekarang! 🌟
+                Ayo Mulai<br/>Sekarang!  <Star className="w-5 h-5" /> 
               </h2>
               <p className="text-white/70 text-xs leading-relaxed px-4">
                 Siap untuk mengeksplorasi ilmu alam & sosial?
@@ -856,12 +857,12 @@ export default function App() {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
-                <span className="text-2xl block mb-2">🧠</span>
+                <div className="flex justify-center mb-2"><Brain className="w-6 h-6" /></div>
                 <p className="font-bold text-emerald-800 text-sm mb-1">Berpikir Kritis</p>
                 <p className="text-emerald-600 text-xs">Melalui simulasi & eksperimen virtual.</p>
               </div>
               <div className="bg-orange-50 rounded-2xl p-4 border border-orange-100">
-                <span className="text-2xl block mb-2">🌱</span>
+                <div className="flex justify-center mb-2"><Leaf className="w-6 h-6" /></div>
                 <p className="font-bold text-orange-800 text-sm mb-1">Proyek P5</p>
                 <p className="text-orange-600 text-xs">Misi nyata pelestarian lingkungan.</p>
               </div>
@@ -877,7 +878,7 @@ export default function App() {
             {/* Siswa Card */}
             <ScrollReveal delay={100}>
               <div className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-3xl p-6 mb-4 text-white shadow-lg relative overflow-hidden">
-                <div className="absolute -right-4 -top-4 text-8xl opacity-10">👦</div>
+                <div className="absolute -right-4 -top-4 text-8xl opacity-10"> <User className="w-5 h-5" /> </div>
                 <h3 className="font-bold text-xl mb-1">Untuk Siswa</h3>
                 <p className="text-blue-100 text-xs mb-4">Belajar jadi petualangan seru!</p>
                 <ul className="space-y-3 relative z-10">
@@ -891,7 +892,7 @@ export default function App() {
             {/* Guru Card */}
             <ScrollReveal delay={200}>
               <div className="bg-gradient-to-br from-violet-500 to-purple-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
-                <div className="absolute -right-4 -top-4 text-8xl opacity-10">👩‍🏫</div>
+                <div className="absolute -right-4 -top-4 text-8xl opacity-10"> <User className="w-5 h-5" /> ‍ <School className="w-5 h-5" /> </div>
                 <h3 className="font-bold text-xl mb-1">Untuk Guru</h3>
                 <p className="text-violet-100 text-xs mb-4">Manajemen kelas di ujung jari.</p>
                 <ul className="space-y-3 relative z-10">
@@ -907,21 +908,21 @@ export default function App() {
           <ScrollReveal delay={100}>
             <div className="flex justify-center items-center gap-2 mb-6">
               <h2 className="font-display text-2xl text-gray-800 leading-tight text-center">Intip Materi IPAS Yuk!</h2>
-              <span className="text-2xl animate-bounce">👀</span>
+              <Eye className="w-6 h-6 animate-bounce inline-block" />
             </div>
             {/* Seamless Marquee Container */}
             <div className="relative overflow-hidden w-full" style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
               <div className="flex gap-3 w-max animate-marquee">
                 {[
-                  { title: 'Tumbuhan', emoji: '🌿', color: 'bg-green-100 text-green-700' },
-                  { title: 'Wujud Zat', emoji: '🧪', color: 'bg-blue-100 text-blue-700' },
-                  { title: 'Gaya & Gerak', emoji: '⚡', color: 'bg-violet-100 text-violet-700' },
-                  { title: 'Energi', emoji: '💡', color: 'bg-amber-100 text-amber-700' },
+                  { title: 'Tumbuhan', emoji: <Leaf className="w-5 h-5" />, color: 'bg-green-100 text-green-700' },
+                  { title: 'Wujud Zat', emoji: <TestTube className="w-5 h-5" />, color: 'bg-blue-100 text-blue-700' },
+                  { title: 'Gaya & Gerak', emoji: <Zap className="w-5 h-5" />, color: 'bg-violet-100 text-violet-700' },
+                  { title: 'Energi', emoji: <Lightbulb className="w-5 h-5" />, color: 'bg-amber-100 text-amber-700' },
                   // Duplicate items to create seamless loop
-                  { title: 'Tumbuhan', emoji: '🌿', color: 'bg-green-100 text-green-700' },
-                  { title: 'Wujud Zat', emoji: '🧪', color: 'bg-blue-100 text-blue-700' },
-                  { title: 'Gaya & Gerak', emoji: '⚡', color: 'bg-violet-100 text-violet-700' },
-                  { title: 'Energi', emoji: '💡', color: 'bg-amber-100 text-amber-700' },
+                  { title: 'Tumbuhan', emoji: <Leaf className="w-5 h-5" />, color: 'bg-green-100 text-green-700' },
+                  { title: 'Wujud Zat', emoji: <TestTube className="w-5 h-5" />, color: 'bg-blue-100 text-blue-700' },
+                  { title: 'Gaya & Gerak', emoji: <Zap className="w-5 h-5" />, color: 'bg-violet-100 text-violet-700' },
+                  { title: 'Energi', emoji: <Lightbulb className="w-5 h-5" />, color: 'bg-amber-100 text-amber-700' },
                 ].map((b, i) => (
                   <div key={i} className="shrink-0 w-32 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex flex-col items-center text-center">
                     <div className={`w-12 h-12 rounded-full ${b.color} flex items-center justify-center text-2xl mb-2`}>{b.emoji}</div>
@@ -937,7 +938,7 @@ export default function App() {
             <div className="bg-emerald-50 rounded-3xl p-6 relative overflow-hidden mt-2 border border-emerald-100">
               <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-200/50 rounded-bl-full -z-0" />
               <div className="relative z-10">
-                <span className="text-3xl mb-2 block">💡</span>
+                <div className="flex justify-center mb-2"><Lightbulb className="w-7 h-7" /></div>
                 <p className="text-emerald-800 text-sm font-medium leading-relaxed italic">
                   "Pembelajaran yang bermakna adalah ketika siswa bisa melihat, menyentuh, dan berinteraksi langsung dengan ilmu yang mereka pelajari."
                 </p>
@@ -958,7 +959,7 @@ export default function App() {
                   <img src="/logo-unesa.png" alt="UNESA" className="w-full h-full object-contain" />
                 </div>
               </div>
-              <p className="text-gray-600 text-xs font-bold mb-1">Hak Cipta © 2026</p>
+              <p className="text-gray-600 text-xs font-bold mb-1">Hak Cipta  <Copyright className="w-5 h-5" />  2026</p>
               <p className="text-gray-400 text-[10px] leading-relaxed max-w-[250px] mx-auto">
                 Aplikasi ini dikembangkan sebagai bagian dari <br />
                 <span className="font-semibold text-gray-500">Program Kerja KKN Universitas Negeri Surabaya (UNESA)</span>
@@ -976,7 +977,7 @@ export default function App() {
           onClick={() => navigate('roleSelect')}
           className="w-full bg-gray-900 text-white py-4 rounded-2xl font-bold text-base shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
         >
-          Masuk ke Aplikasi <span className="text-xl">🚀</span>
+          Masuk ke Aplikasi <span className="text-xl"> <Rocket className="w-5 h-5" /> </span>
         </button>
       </div>
     </div>
@@ -1014,12 +1015,12 @@ export default function App() {
 
       {/* Floating subject orbs */}
       {[
-        { emoji: '🌿', top: '12%', left: '8%', size: 'w-14 h-14', dur: '3.2s', delay: '0s' },
-        { emoji: '🧪', top: '18%', right: '10%', size: 'w-12 h-12', dur: '2.8s', delay: '0.4s' },
-        { emoji: '⚡', top: '55%', left: '5%', size: 'w-11 h-11', dur: '3.8s', delay: '0.8s' },
-        { emoji: '🔋', bottom: '20%', right: '8%', size: 'w-14 h-14', dur: '3.1s', delay: '0.2s' },
-        { emoji: '🌍', bottom: '35%', left: '12%', size: 'w-12 h-12', dur: '4s', delay: '1s' },
-        { emoji: '🛒', top: '42%', right: '6%', size: 'w-10 h-10', dur: '2.6s', delay: '0.6s' },
+        { emoji: <Leaf className="w-5 h-5" />, top: '12%', left: '8%', size: 'w-14 h-14', dur: '3.2s', delay: '0s' },
+        { emoji: <TestTube className="w-5 h-5" />, top: '18%', right: '10%', size: 'w-12 h-12', dur: '2.8s', delay: '0.4s' },
+        { emoji: <Zap className="w-5 h-5" />, top: '55%', left: '5%', size: 'w-11 h-11', dur: '3.8s', delay: '0.8s' },
+        { emoji: <Battery className="w-5 h-5" />, bottom: '20%', right: '8%', size: 'w-14 h-14', dur: '3.1s', delay: '0.2s' },
+        { emoji: <Globe className="w-5 h-5" />, bottom: '35%', left: '12%', size: 'w-12 h-12', dur: '4s', delay: '1s' },
+        { emoji: <ShoppingCart className="w-5 h-5" />, top: '42%', right: '6%', size: 'w-10 h-10', dur: '2.6s', delay: '0.6s' },
       ].map((o, i) => (
         <div key={i} className={`absolute ${o.size} bg-white/10 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-md border border-white/15`}
           style={{ top: o.top, left: (o as any).left, right: (o as any).right, bottom: (o as any).bottom, animation: `floatX ${o.dur} ease-in-out infinite ${o.delay}` }}>
@@ -1033,7 +1034,7 @@ export default function App() {
         <div className="relative mb-8" style={{ animation: 'float 3s ease-in-out infinite' }}>
           <div className="w-32 h-32 rounded-[2.5rem] flex items-center justify-center text-7xl shadow-2xl animate-pulse-glow"
             style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.08) 100%)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.3)' }}>
-            🔬
+             <Microscope className="w-5 h-5" /> 
           </div>
           {/* Star sparks */}
           {['top-0 -right-2', '-top-2 left-1', 'bottom-1 -left-3', '-bottom-1 right-0'].map((pos, i) => (
@@ -1074,14 +1075,14 @@ export default function App() {
   if (screen === 'roleSelect') return (
     <div className="h-full bg-gradient-to-br from-emerald-600 via-teal-700 to-cyan-800 flex flex-col items-center justify-center px-6 overflow-hidden">
       <div className="text-center mb-10">
-        <div className="w-24 h-24 bg-white/20 rounded-[2rem] flex items-center justify-center text-5xl mx-auto mb-5 backdrop-blur-sm" style={{ animation: 'float 3s ease-in-out infinite' }}>🔬</div>
+        <div className="w-24 h-24 bg-white/20 rounded-[2rem] flex items-center justify-center text-5xl mx-auto mb-5 backdrop-blur-sm" style={{ animation: 'float 3s ease-in-out infinite' }}> <Microscope className="w-5 h-5" /> </div>
         <h1 className="text-4xl font-display text-white mb-1">IPAS Kelas 3</h1>
         <p className="text-emerald-100 font-medium">Platform Belajar Kurikulum Merdeka</p>
       </div>
       <div className="w-full space-y-4">
         <button onClick={() => { navigate('loginGuru'); }}
           className="w-full bg-white rounded-3xl p-5 flex items-center gap-4 shadow-2xl active:scale-95 transition-transform">
-          <div className="w-16 h-16 bg-sky-100 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0">👩‍🏫</div>
+          <div className="w-16 h-16 bg-sky-100 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0"> <User className="w-5 h-5" /> ‍ <School className="w-5 h-5" /> </div>
           <div className="flex-1 text-left">
             <p className="font-display text-gray-800 text-xl">Masuk sebagai Guru</p>
             <p className="text-gray-500 text-sm">Upload materi & buat media interaktif</p>
@@ -1090,7 +1091,7 @@ export default function App() {
         </button>
         <button onClick={() => { navigate('loginSiswa'); }}
           className="w-full bg-white/20 backdrop-blur-sm rounded-3xl p-5 flex items-center gap-4 border border-white/30 active:scale-95 transition-transform">
-          <div className="w-16 h-16 bg-emerald-400/30 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0">🧑‍🎓</div>
+          <div className="w-16 h-16 bg-emerald-400/30 rounded-2xl flex items-center justify-center text-4xl flex-shrink-0"> <User className="w-5 h-5" /> ‍ <GraduationCap className="w-5 h-5" /> </div>
           <div className="flex-1 text-left">
             <p className="font-display text-white text-xl">Masuk sebagai Siswa</p>
             <p className="text-emerald-100 text-sm">Belajar & eksplorasi materi IPAS</p>
@@ -1099,7 +1100,7 @@ export default function App() {
         </button>
       </div>
       <div className="mt-8 text-center opacity-80">
-        <p className="text-white text-xs font-bold mb-1">Hak Cipta © 2026</p>
+        <p className="text-white text-xs font-bold mb-1">Hak Cipta  <Copyright className="w-5 h-5" />  2026</p>
         <p className="text-emerald-100 text-[10px] leading-relaxed max-w-[250px] mx-auto">
           Aplikasi ini dikembangkan sebagai bagian dari <br />
           <span className="font-semibold text-white">Program Kerja KKN Universitas Negeri Surabaya (UNESA)</span>
@@ -1133,7 +1134,11 @@ export default function App() {
             await updateProfile(auth.currentUser!, { displayName: loginUser.split('@')[0] });
             navigate('teacherDash');
           } catch (err2: any) {
-            setLoginError('Gagal register: ' + err2.message);
+            if (err2.code === 'auth/email-already-in-use') {
+              setLoginError('Password salah! Jika lupa password, silakan hubungi tim dukungan IT.');
+            } else {
+              setLoginError('Gagal masuk/daftar: ' + err2.message);
+            }
           }
         } else if (error.code === 'auth/invalid-email') {
           setLoginError('Format email tidak valid. Gunakan format nama@sekolah.com');
@@ -1150,7 +1155,7 @@ export default function App() {
             <BackBtn onBack={goBack} light />
             <div>
               <p className="text-sky-100 text-xs font-semibold tracking-wider">Akses Khusus</p>
-              <p className="text-white font-display text-xl">Login Guru 👩‍🏫</p>
+              <p className="text-white font-display text-xl">Login Guru  <User className="w-5 h-5" /> ‍ <School className="w-5 h-5" /> </p>
             </div>
           </div>
         </div>
@@ -1158,14 +1163,14 @@ export default function App() {
           <div className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-100 relative">
             
             <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-lg border-4 border-gray-50">
-               <span className="text-5xl">🔐</span>
+               <span className="text-5xl"> <Lock className="w-5 h-5" /> </span>
             </div>
 
             <h2 className="font-display text-2xl text-gray-800 mb-6 text-center mt-10">Masuk Dashboard</h2>
             
             {loginError && (
               <div className="bg-red-50 text-red-600 text-xs font-bold p-3 rounded-xl mb-5 text-center flex items-center justify-center gap-2 border border-red-100">
-                <span className="text-lg">⚠️</span> {loginError}
+                <span className="text-lg"> <AlertTriangle className="w-5 h-5" /> ️</span> {loginError}
               </div>
             )}
 
@@ -1173,7 +1178,7 @@ export default function App() {
               <div>
                 <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wide">Email</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-3 text-gray-400">📧</span>
+                  <span className="absolute left-4 top-3 text-gray-400"> <Mail className="w-5 h-5" /> </span>
                   <input type="email" value={loginUser} onChange={e => setLoginUser(e.target.value)} 
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all font-medium text-gray-700" placeholder="Masukkan email..." />
                 </div>
@@ -1182,9 +1187,12 @@ export default function App() {
               <div>
                 <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wide">Password (Min 6 karakter)</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-3 text-gray-400">🔑</span>
+                  <span className="absolute left-4 top-3 text-gray-400"> <Key className="w-5 h-5" /> </span>
                   <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} 
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all font-medium text-gray-700" placeholder="••••••••" />
+                </div>
+                <div className="text-right mt-2">
+                  <button type="button" onClick={() => navigate('forgotPassword')} className="text-sm font-bold text-sky-600 hover:text-sky-700">Lupa password?</button>
                 </div>
               </div>
               
@@ -1198,13 +1206,75 @@ export default function App() {
                     <span className="text-indigo-400">=</span>
                   </div>
                   <input type="number" value={captchaInput} onChange={e => setCaptchaInput(e.target.value)}
-                    className="flex-1 bg-white border-2 border-indigo-100 rounded-xl px-4 py-3 text-base outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-black text-indigo-700 text-center" placeholder="?" />
+                    className="w-24 bg-white border-2 border-indigo-100 rounded-xl px-4 py-3 text-base outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all font-black text-indigo-700 text-center" placeholder="?" />
+                  <button type="button" onClick={() => setCaptcha({ n1: Math.floor(Math.random() * 10) + 1, n2: Math.floor(Math.random() * 10) + 1 })}
+                    className="w-12 h-12 flex items-center justify-center bg-gray-50 text-gray-400 rounded-xl hover:bg-sky-50 hover:text-sky-600 active:scale-95 transition-all">
+                    <RefreshCw className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
             </div>
 
             <button onClick={handleLogin} className="w-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white py-4 rounded-xl font-bold mt-8 shadow-lg shadow-indigo-200 active:scale-95 transition-transform flex items-center justify-center gap-2 text-base">
               Masuk Sekarang <span>→</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 1x. LUPA PASSWORD ───────────────────────────────────────────────────────
+  if (screen === 'forgotPassword') {
+    const handleReset = async () => {
+      if (!loginUser) {
+        setLoginError('Masukkan email Anda terlebih dahulu.');
+        return;
+      }
+      try {
+        await sendPasswordResetEmail(auth, loginUser);
+        setLoginError('Tautan reset password telah dikirim ke email Anda! Silakan cek kotak masuk atau folder spam.');
+      } catch (error: any) {
+        setLoginError('Gagal mengirim tautan: ' + error.message);
+      }
+    };
+
+    return (
+      <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
+        <div className="bg-gradient-to-br from-sky-600 to-indigo-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0 shadow-lg">
+          <div className="flex items-center gap-3 mb-3">
+            <BackBtn onBack={goBack} light />
+            <div>
+              <p className="text-sky-200 text-xs font-semibold tracking-wider">Pemulihan Akun</p>
+              <p className="text-white font-display text-xl">Lupa Password <Lock className="w-5 h-5" /></p>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-8 flex flex-col justify-center">
+          <div className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-100 relative">
+            <p className="text-gray-600 text-sm mb-6 text-center">
+              Masukkan email akun Anda. Kami akan mengirimkan tautan untuk mengatur ulang password Anda.
+            </p>
+            
+            {loginError && (
+              <div className={`p-4 rounded-xl text-sm font-bold mb-6 text-center ${loginError.includes('Tautan reset') ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                {loginError}
+              </div>
+            )}
+
+            <div className="space-y-5">
+              <div>
+                <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wide">Email</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-3 text-gray-400"> <Mail className="w-5 h-5" /> </span>
+                  <input type="email" value={loginUser} onChange={e => setLoginUser(e.target.value)} 
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all font-medium text-gray-700" placeholder="Masukkan email Anda..." />
+                </div>
+              </div>
+            </div>
+
+            <button onClick={handleReset} className="w-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white py-4 rounded-xl font-bold mt-8 shadow-lg shadow-indigo-200 active:scale-95 transition-transform flex items-center justify-center gap-2 text-base">
+              Kirim Tautan Reset
             </button>
           </div>
         </div>
@@ -1232,7 +1302,11 @@ export default function App() {
             setScreens(['studentHome']);
             setActiveTab('home');
           } catch (err2: any) {
-            setLoginError('Gagal register: ' + err2.message);
+            if (err2.code === 'auth/email-already-in-use') {
+              setLoginError('Password salah! Jika kamu lupa password, minta tolong Guru untuk membantu mengatur ulang.');
+            } else {
+              setLoginError('Gagal masuk/daftar: ' + err2.message);
+            }
           }
         } else if (error.code === 'auth/invalid-email') {
           setLoginError('Format email tidak valid. Gunakan format nama@sekolah.com');
@@ -1249,7 +1323,7 @@ export default function App() {
             <BackBtn onBack={goBack} light />
             <div>
               <p className="text-emerald-100 text-xs font-semibold tracking-wider">Akses Belajar</p>
-              <p className="text-white font-display text-xl">Login Siswa 🧑‍🎓</p>
+              <p className="text-white font-display text-xl">Login Siswa  <User className="w-5 h-5" /> ‍ <GraduationCap className="w-5 h-5" /> </p>
             </div>
           </div>
         </div>
@@ -1320,22 +1394,22 @@ export default function App() {
       <div className="bg-gradient-to-br from-sky-600 to-indigo-700 px-5 pt-10 pb-7 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-sm">👩‍🏫</div>
+            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm"><School className="w-6 h-6 text-white" /></div>
             <div>
               <p className="text-sky-200 text-xs font-semibold">Selamat datang,</p>
-              <p className="text-white font-display text-xl">{auth.currentUser?.displayName || 'Guru'} 👋</p>
+              <p className="text-white font-display text-xl">{auth.currentUser?.displayName || 'Guru'}  <Hand className="w-5 h-5" /> </p>
             </div>
           </div>
           <button onClick={() => { signOut(auth); setScreens(['roleSelect']); }} className="bg-white/20 rounded-xl px-3 py-1.5 text-white text-xs font-bold backdrop-blur-sm">Keluar</button>
         </div>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Materi', value: totalMateri, icon: '📁' },
-            { label: 'Interaktif', value: totalInteraktif, icon: '🎮' },
-            { label: 'Siswa Aktif', value: totalSiswa, icon: '👥' },
+            { label: 'Materi', value: totalMateri, icon: <Folder className="w-5 h-5" /> },
+            { label: 'Interaktif', value: totalInteraktif, icon: <Gamepad2 className="w-5 h-5" /> },
+            { label: 'Siswa Aktif', value: totalSiswa, icon: <Users className="w-5 h-5" /> },
           ].map((s, i) => (
             <div key={i} className="bg-white/20 rounded-2xl p-3 text-center backdrop-blur-sm">
-              <span className="text-2xl block mb-1">{s.icon}</span>
+              <div className="flex justify-center mb-1 text-white/80">{s.icon}</div>
               <p className="text-white font-black text-xl">{s.value}</p>
               <p className="text-sky-100 text-xs">{s.label}</p>
             </div>
@@ -1349,14 +1423,14 @@ export default function App() {
           <p className="font-display text-gray-700 mb-3">Aksi Cepat</p>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { icon: '📤', label: 'Upload Materi', sub: 'PDF, Video, Gambar', color: 'from-sky-500 to-blue-600', action: () => { setUploadStep(0); setUploadChapter(''); setUploadType(''); setUploadTitle(''); setUploadDone(false); navigate('uploadMateri'); } },
-              { icon: '✨', label: 'Buat Interaktif', sub: 'Kuis, Cocokkan, Simulasi', color: 'from-violet-500 to-purple-600', action: () => { setSelectedTemplate(''); navigate('buatInteraktif'); } },
-              { icon: '📊', label: 'Progress Siswa', sub: 'Lihat analitik kelas', color: 'from-emerald-500 to-teal-600', action: () => navigate('progressSiswa') },
-              { icon: '📋', label: 'Kelola Bab', sub: 'Atur urutan materi', color: 'from-amber-500 to-orange-500', action: () => navigate('kelolaBab') },
+              { icon: <Upload className="w-5 h-5" />, label: 'Upload Materi', sub: 'PDF, Video, Gambar', color: 'from-sky-500 to-blue-600', action: () => { setUploadStep(0); setUploadChapter(''); setUploadType(''); setUploadTitle(''); setUploadDone(false); navigate('uploadMateri'); } },
+              { icon: <Sparkles className="w-5 h-5" />, label: 'Buat Interaktif', sub: 'Kuis, Cocokkan, Simulasi', color: 'from-violet-500 to-purple-600', action: () => { setSelectedTemplate(''); navigate('buatInteraktif'); } },
+              { icon: <BarChart2 className="w-5 h-5" />, label: 'Progress Siswa', sub: 'Lihat analitik kelas', color: 'from-emerald-500 to-teal-600', action: () => navigate('progressSiswa') },
+              { icon: <ClipboardList className="w-5 h-5" />, label: 'Kelola Bab', sub: 'Atur urutan materi', color: 'from-amber-500 to-orange-500', action: () => navigate('kelolaBab') },
             ].map((a, i) => (
               <button key={i} onClick={a.action}
                 className={`bg-gradient-to-br ${a.color} rounded-3xl p-4 text-left active:scale-95 transition-transform`}>
-                <span className="text-3xl block mb-3">{a.icon}</span>
+                <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center text-white mb-3">{a.icon}</div>
                 <p className="text-white font-bold text-sm">{a.label}</p>
                 <p className="text-white/70 text-xs">{a.sub}</p>
               </button>
@@ -1370,7 +1444,7 @@ export default function App() {
           <div className="space-y-2">
             {dbMaterials.length > 0 ? dbMaterials.slice(-3).reverse().map((f, i) => (
               <div key={i} className="bg-white rounded-2xl p-3 flex items-center gap-3 shadow-sm">
-                <div className="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center text-xl flex-shrink-0">📄</div>
+                <div className="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center text-sky-600 flex-shrink-0"><FileText className="w-5 h-5" /></div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-700 text-sm truncate">{f.title}</p>
                   <p className="text-gray-400 text-xs">{f.chapter} · {f.createdAt ? new Date(f.createdAt.seconds * 1000).toLocaleDateString() : 'Baru saja'}</p>
@@ -1422,7 +1496,7 @@ export default function App() {
       <div className="bg-gradient-to-br from-sky-600 to-indigo-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center gap-3">
           <BackBtn onBack={goBack} light />
-          <p className="text-white font-display text-xl">Pengaturan ⚙️</p>
+          <p className="text-white font-display text-xl">Pengaturan  <Settings className="w-5 h-5" /> ️</p>
         </div>
       </div>
       
@@ -1430,7 +1504,7 @@ export default function App() {
         {/* Profil Sekolah */}
         <div className="bg-white rounded-3xl p-5 shadow-sm">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center text-3xl">👩‍🏫</div>
+            <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center"><School className="w-8 h-8 text-sky-600" /></div>
             <div>
               <p className="font-display text-gray-800 text-lg">Bu Sari</p>
               <p className="text-sky-600 text-sm font-bold">Guru IPAS Kelas 3</p>
@@ -1440,14 +1514,14 @@ export default function App() {
             <div>
               <p className="text-gray-400 text-xs font-bold uppercase mb-1">Asal Sekolah</p>
               <div className="flex items-center gap-2">
-                <span className="text-gray-400">🏫</span>
+                <span className="text-gray-400"> <School className="w-5 h-5" /> </span>
                 <p className="text-gray-700 font-medium">SDN 01 Nusantara Raya</p>
               </div>
             </div>
             <div>
               <p className="text-gray-400 text-xs font-bold uppercase mb-1">NIP / ID Pegawai</p>
               <div className="flex items-center gap-2">
-                <span className="text-gray-400">🆔</span>
+                <span className="text-gray-400"> <Hash className="w-5 h-5" /> </span>
                 <p className="text-gray-700 font-medium">19880312 201001 2 004</p>
               </div>
             </div>
@@ -1482,10 +1556,10 @@ export default function App() {
   // ── 3. UPLOAD MATERI ───────────────────────────────────────────────────────
   if (screen === 'uploadMateri') {
     const FILE_TYPES = [
-      { id: 'pdf', icon: '📄', label: 'PDF / Dokumen', ext: '.pdf, .doc' },
-      { id: 'video', icon: '🎬', label: 'Video', ext: '.mp4, .mov' },
-      { id: 'image', icon: '🖼️', label: 'Gambar / Foto', ext: '.jpg, .png' },
-      { id: 'ppt', icon: '📊', label: 'Presentasi', ext: '.pptx, .key' },
+      { id: 'pdf', icon: <FileText className="w-5 h-5" />, label: 'PDF / Dokumen', ext: '.pdf, .doc' },
+      { id: 'video', icon: <Film className="w-5 h-5" />, label: 'Video', ext: '.mp4, .mov' },
+      { id: 'image', icon: '• ️', label: 'Gambar / Foto', ext: '.jpg, .png' },
+      { id: 'ppt', icon: <BarChart2 className="w-5 h-5" />, label: 'Presentasi', ext: '.pptx, .key' },
     ];
     return (
       <div className="h-full bg-[#F0F9FF] flex flex-col overflow-hidden">
@@ -1536,7 +1610,7 @@ export default function App() {
               <div className="grid grid-cols-1 gap-3">
                 <button onClick={() => { setUploadType('text'); setUploadStep(2); }}
                   className={`p-5 rounded-3xl flex items-center text-left border-2 transition-all active:scale-95 bg-white border-transparent shadow-sm hover:border-sky-300`}>
-                  <div className="w-12 h-12 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center text-2xl mr-4 flex-shrink-0">✍️</div>
+                  <div className="w-12 h-12 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center mr-4 flex-shrink-0"><PenTool className="w-6 h-6" /></div>
                   <div>
                     <p className="font-bold text-gray-800 text-base">Ketik Manual (Word-like)</p>
                     <p className="text-gray-400 text-xs mt-1">Ketik langsung dengan editor teks berwarna.</p>
@@ -1544,7 +1618,7 @@ export default function App() {
                 </button>
                 <button onClick={() => { setUploadType('file'); setUploadStep(2); }}
                   className={`p-5 rounded-3xl flex items-center text-left border-2 transition-all active:scale-95 bg-white border-transparent shadow-sm hover:border-sky-300`}>
-                  <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl mr-4 flex-shrink-0">📤</div>
+                  <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center mr-4 flex-shrink-0"><Upload className="w-6 h-6" /></div>
                   <div>
                     <p className="font-bold text-gray-800 text-base">Upload File (TXT, PDF, Gambar)</p>
                     <p className="text-gray-400 text-xs mt-1">Unggah file materi dari perangkat Anda.</p>
@@ -1571,7 +1645,7 @@ export default function App() {
               <p className="font-display text-gray-700 text-base mb-3">Upload File Materi</p>
               {!uploadDone ? (
                 <label className="w-full flex flex-col items-center justify-center px-5 py-10 rounded-[2rem] bg-white border-2 border-dashed border-sky-300 hover:border-sky-500 cursor-pointer shadow-sm transition-all group">
-                  <span className="text-5xl mb-4 group-hover:scale-110 transition-transform">📄</span>
+                  <span className="text-5xl mb-4 group-hover:scale-110 transition-transform"> <FileText className="w-5 h-5" /> </span>
                   <p className="font-bold text-gray-700 text-sm mb-1">Klik untuk memilih file</p>
                   <p className="text-gray-400 text-xs text-center">Mendukung file TXT, Gambar, PDF, Word</p>
                   <input type="file" className="hidden" onChange={(e) => {
@@ -1589,7 +1663,7 @@ export default function App() {
                       reader.readAsText(file);
                     } else {
                       const html = `<div class="p-4 bg-sky-50 rounded-xl text-center border-2 border-dashed border-sky-300 my-4 max-w-sm mx-auto shadow-sm">
-                        <span class="text-4xl block mb-2">📎</span>
+                        <span class="text-4xl block mb-2"> <Paperclip className="w-5 h-5" /> </span>
                         <p class="font-bold text-sky-800 text-sm">File Materi Terlampir</p>
                         <p class="text-xs text-sky-600 mt-1">${file.name} (${(file.size/1024).toFixed(1)} KB)</p>
                         <button class="mt-3 px-4 py-2.5 bg-sky-600 text-white rounded-lg text-xs font-bold w-full shadow-md active:scale-95 transition-transform">Buka File Terlampir</button>
@@ -1639,7 +1713,7 @@ export default function App() {
                 </div>
               </div>
               <div className="bg-sky-50 rounded-2xl p-3 flex items-center gap-3">
-                <span className="text-xl">🔔</span>
+                <span className="text-xl"> <Bell className="w-5 h-5" /> </span>
                 <div>
                   <p className="font-bold text-sky-700 text-sm">Notifikasi Siswa</p>
                   <p className="text-sky-600 text-xs">28 siswa akan mendapat notifikasi setelah dipublikasikan</p>
@@ -1692,7 +1766,7 @@ export default function App() {
               }}
               disabled={!uploadTitle || isUploadingDB}
               className={`w-full py-4 rounded-2xl font-display text-base transition-all ${uploadTitle && !isUploadingDB ? 'bg-emerald-600 text-white shadow-lg active:scale-95' : 'bg-gray-200 text-gray-400'}`}>
-              {isUploadingDB ? 'Menyimpan...' : 'Publikasikan ke Siswa 🚀'}
+              {isUploadingDB ? 'Menyimpan...' : 'Publikasikan ke Siswa  <Rocket className="w-5 h-5" /> '}
             </button>
           ) : null}
         </div>
@@ -1708,7 +1782,7 @@ export default function App() {
           <BackBtn onBack={goBack} light />
           <div>
             <p className="text-violet-200 text-xs">Guru</p>
-            <p className="text-white font-display text-xl">Buat Media Interaktif ✨</p>
+            <p className="text-white font-display text-xl">Buat Media Interaktif  <Sparkles className="w-5 h-5" /> </p>
           </div>
         </div>
       </div>
@@ -1763,7 +1837,7 @@ export default function App() {
                       <input value={pair.kiri} onChange={e => setPairRows(r => r.map((p, j) => j === i ? { ...p, kiri: e.target.value } : p))}
                         placeholder={`Konsep ${i + 1}`}
                         className="flex-1 px-3 py-2.5 rounded-xl bg-white border-2 border-gray-200 outline-none text-gray-700 text-sm" />
-                      <span className="flex items-center text-gray-400">↔</span>
+                      <span className="flex items-center text-gray-400"> <MoveHorizontal className="w-5 h-5" /> </span>
                       <input value={pair.kanan} onChange={e => setPairRows(r => r.map((p, j) => j === i ? { ...p, kanan: e.target.value } : p))}
                         placeholder={`Pasangannya`}
                         className="flex-1 px-3 py-2.5 rounded-xl bg-white border-2 border-gray-200 outline-none text-gray-700 text-sm" />
@@ -1789,7 +1863,7 @@ export default function App() {
                   <button 
                     onClick={() => setQuizUploadMode('upload')}
                     className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1 ${quizUploadMode === 'upload' ? 'bg-white text-amber-700 shadow-sm' : 'text-amber-600/70 hover:text-amber-700'}`}>
-                    <span>⚡</span> AI Auto-Proses (TXT/Word)
+                    <span> <Zap className="w-5 h-5" /> </span> AI Auto-Proses (TXT/Word)
                   </button>
                 </div>
 
@@ -1812,7 +1886,7 @@ export default function App() {
                       <div className="border-2 border-dashed border-amber-400 bg-white/50 rounded-2xl p-6 text-center">
                         {isProcessingUpload ? (
                           <div className="flex flex-col items-center">
-                            <span className="text-4xl animate-bounce mb-3">🤖</span>
+                            <span className="text-4xl animate-bounce mb-3"> <Bot className="w-5 h-5" /> </span>
                             <p className="text-amber-800 font-bold text-sm">Sistem AI Sedang Memproses...</p>
                             <p className="text-amber-600 text-xs mt-1">Mengekstrak pertanyaan & pilihan ganda dari file</p>
                             <div className="w-full h-1.5 bg-amber-100 rounded-full mt-4 overflow-hidden">
@@ -1821,7 +1895,7 @@ export default function App() {
                           </div>
                         ) : (
                           <>
-                            <span className="text-4xl mb-3 block opacity-80">📄</span>
+                            <span className="text-4xl mb-3 block opacity-80"> <FileText className="w-5 h-5" /> </span>
                             <p className="font-bold text-gray-700 text-sm mb-1">Upload File Soal</p>
                             <p className="text-gray-500 text-xs px-2 mb-4 leading-relaxed">
                               Punya soal di Word (.docx) atau Notepad (.txt)? Upload di sini dan AI kami akan otomatis memisahkannya menjadi kuis interaktif.
@@ -1842,7 +1916,7 @@ export default function App() {
                     ) : (
                       <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white text-xl">✅</div>
+                          <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white text-xl"> <CheckCircle className="w-5 h-5" /> </div>
                           <div>
                             <p className="font-bold text-emerald-800 text-sm">Proses Selesai!</p>
                             <p className="text-emerald-600 text-xs">Berhasil mengekstrak 5 soal pilihan ganda.</p>
@@ -1874,7 +1948,7 @@ export default function App() {
               <button className="flex-1 py-4 rounded-2xl font-bold text-violet-600 bg-violet-100 text-sm">Pratinjau</button>
               <button onClick={() => setScreens(['teacherDash'])}
                 className="flex-1 py-4 rounded-2xl font-display text-white bg-violet-600 text-sm shadow-lg active:scale-95">
-                Publikasikan 🚀
+                Publikasikan  <Rocket className="w-5 h-5" /> 
               </button>
             </div>
             <div className="h-2" />
@@ -1906,7 +1980,7 @@ export default function App() {
         if (arr.includes('kuis')) totalKuis++;
       });
       const avg = Math.round(babProgs.reduce((a, v) => a + v, 0) / 3);
-      return { id: s.id, name: s.displayName || `Siswa ${s.id.slice(0,4)}`, avatar: '🧑‍🎓', babProgs, avg, xp: s.xp || 0 };
+      return { id: s.id, name: s.displayName || `Siswa ${s.id.slice(0,4)}`, avatar: <BookOpen className="w-5 h-5" />, babProgs, avg, xp: s.xp || 0 };
     });
 
     const classRataRata = students.length > 0 ? Math.round(mappedStudents.reduce((a, s) => a + s.avg, 0) / students.length) : 0;
@@ -1932,13 +2006,13 @@ export default function App() {
         <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
           <div className="flex items-center gap-3 mb-4">
             <BackBtn onBack={goBack} light />
-            <p className="text-white font-display text-xl">Progress Siswa 📊</p>
+            <p className="text-white font-display text-xl">Progress Siswa  <BarChart2 className="w-5 h-5" /> </p>
           </div>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Rata-rata', value: `${classRataRata}%`, icon: '📈' },
-              { label: 'Total Siswa', value: students.length, icon: '👥' },
-              { label: 'Kuis Selesai', value: totalKuis, icon: '✅' },
+              { label: 'Rata-rata', value: `${classRataRata}%`, icon: <TrendingUp className="w-5 h-5" /> },
+              { label: 'Total Siswa', value: students.length, icon: <Users className="w-5 h-5" /> },
+              { label: 'Kuis Selesai', value: totalKuis, icon: <CheckCircle className="w-5 h-5" /> },
             ].map((s, i) => (
               <div key={i} className="bg-white/20 rounded-2xl p-3 text-center">
                 <p className="text-lg mb-0.5">{s.icon}</p>
@@ -2009,7 +2083,7 @@ export default function App() {
 
           {/* Weak areas */}
           <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100">
-            <p className="font-display text-amber-700 mb-2">⚠️ Materi yang Perlu Perhatian</p>
+            <p className="font-display text-amber-700 mb-2"> <AlertTriangle className="w-5 h-5" /> ️ Materi yang Perlu Perhatian</p>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
@@ -2088,7 +2162,7 @@ export default function App() {
       <div className="bg-gradient-to-br from-amber-500 to-orange-600 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center gap-3">
           <BackBtn onBack={goBack} light />
-          <p className="text-white font-display text-xl">Kelola Bab 📋</p>
+          <p className="text-white font-display text-xl">Kelola Bab  <ClipboardList className="w-5 h-5" /> </p>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
@@ -2129,15 +2203,15 @@ export default function App() {
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-8 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-sm">🧑‍🎓</div>
+            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm"><GraduationCap className="w-6 h-6 text-white" /></div>
             <div>
               <p className="text-emerald-100 text-xs font-semibold">Halo,</p>
-              <p className="text-white font-display text-xl">{auth.currentUser?.displayName || 'Siswa'}! 👋</p>
+              <p className="text-white font-display text-xl">{auth.currentUser?.displayName || 'Siswa'}!  <Hand className="w-5 h-5" /> </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="bg-white/20 rounded-xl px-2 py-1.5 flex items-center gap-1 backdrop-blur-sm">
-              <span className="text-yellow-300 text-xs">⭐</span>
+              <span className="text-yellow-300 text-xs"> <Star className="w-5 h-5" /> </span>
               <span className="text-white font-bold text-xs">{userProfile.xp} XP</span>
             </div>
             <button onClick={() => { signOut(auth); setScreens(['roleSelect']); }} className="bg-white/20 rounded-xl px-3 py-1.5 text-white text-xs font-bold backdrop-blur-sm active:scale-95 transition-transform">Keluar</button>
@@ -2148,16 +2222,16 @@ export default function App() {
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
         {/* Lanjutkan belajar */}
         <div>
-          <p className="font-display text-gray-700 mb-2.5">Lanjutkan Belajar 📖</p>
+          <p className="font-display text-gray-700 mb-2.5">Lanjutkan Belajar  <BookOpen className="w-5 h-5" /> </p>
           <button onClick={() => { setCurrentBabIdx(0); navigate('detailBab'); }}
             className="w-full bg-gradient-to-r from-green-500 to-emerald-600 rounded-3xl p-4 text-left shadow-lg shadow-emerald-200 active:scale-95 transition-transform">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">🌿</div>
+              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center"><Leaf className="w-6 h-6" /></div>
               <div className="flex-1">
                 <p className="text-emerald-100 text-xs font-semibold">Bab 1</p>
                 <p className="text-white font-display text-base">Tumbuhan, Sumber Kehidupan</p>
               </div>
-              <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center text-white text-sm">▶</div>
+              <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center text-white text-sm"> <PlayCircle className="w-5 h-5" /> </div>
             </div>
             <div className="flex items-center gap-2">
               <ProgressBar pct={50} gradient="from-white to-white/80" h="h-2" />
@@ -2169,14 +2243,14 @@ export default function App() {
         {/* Media baru dari guru */}
         <div>
           <div className="flex justify-between items-center mb-2.5">
-            <p className="font-display text-gray-700">Media Baru dari Bu Sari 🆕</p>
+            <p className="font-display text-gray-700">Media Baru dari Bu Sari  <BadgePlus className="w-5 h-5" /> </p>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-1">
             <button onClick={() => { setArenaPhase('intro'); navigate('arena'); }}
               className="relative rounded-2xl p-3 flex flex-col items-center text-center flex-shrink-0 w-28 overflow-hidden active:scale-95 transition-transform"
               style={{ background: 'radial-gradient(130% 130% at 0% 0%, #0f766e, #0a2540)', boxShadow: '0 6px 18px rgba(6,95,70,0.35)' }}>
               <div className="absolute inset-0 arena-grid opacity-50 pointer-events-none" />
-              <span className="relative text-3xl mb-2">⚡</span>
+              <div className="flex justify-center mb-2"><Zap className="w-7 h-7" /></div>
               <p className="relative font-display text-white text-xs leading-tight">Sains Sprint</p>
               <p className="relative text-lime-300 text-[10px] mt-1 font-black tracking-wide">MAIN!</p>
             </button>
@@ -2226,7 +2300,7 @@ export default function App() {
     <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-5 rounded-b-[2.5rem] flex-shrink-0">
         <p className="text-emerald-100 text-xs font-semibold mb-1">IPAS Kelas 3 · Kurikulum Merdeka</p>
-        <p className="text-white font-display text-2xl">8 Bab Pembelajaran 🌿</p>
+        <p className="text-white font-display text-2xl">8 Bab Pembelajaran  <Leaf className="w-5 h-5" /> </p>
       </div>
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {BAB_LIST.map((b, i) => {
@@ -2237,7 +2311,7 @@ export default function App() {
               className={`w-full rounded-3xl overflow-hidden shadow-sm active:scale-95 transition-all ${locked ? 'opacity-50' : ''}`}>
               <div className={`bg-gradient-to-r ${b.gradient} p-4`}>
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">{locked ? '🔒' : b.emoji}</div>
+                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">{locked ? <Lock className="w-5 h-5" /> : b.emoji}</div>
                   <div className="flex-1 text-left">
                     <p className="text-white/70 text-xs font-semibold">Bab {b.id}</p>
                     <p className="text-white font-display text-base leading-tight">{b.judul}</p>
@@ -2283,7 +2357,7 @@ export default function App() {
             <p className="text-white/80 text-[10px] font-bold tracking-widest uppercase mb-0.5">Bab {bab.id}</p>
             <h2 className="text-white font-display text-lg leading-tight truncate">{bab.judul}</h2>
           </div>
-          <div className="w-12 h-12 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl flex items-center justify-center text-2xl shadow-sm flex-shrink-0">
+          <div className="w-12 h-12 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0">
             {bab.emoji}
           </div>
         </div>
@@ -2329,7 +2403,7 @@ export default function App() {
                    if (m.screen === 'flipCards') setFlipped(new Set());
                    navigate(m.screen);
                  }}>
-               <h3 className="font-bold text-slate-800 text-base mb-1">Misi Interaktif ✨</h3>
+               <h3 className="font-bold text-slate-800 text-base mb-1">Misi Interaktif  <Sparkles className="w-5 h-5" /> </h3>
                <p className="text-slate-500 text-xs mb-3">{bab.interaktif[0].title}</p>
                <button className={`${interaktifDone ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-600'} px-4 py-2.5 rounded-xl text-xs font-bold w-full text-left flex justify-between items-center`}>
                  {interaktifDone ? 'Mainkan Ulang' : 'Mainkan Sekarang'} <span>→</span>
@@ -2348,7 +2422,7 @@ export default function App() {
              <h3 className="font-bold text-slate-800 text-base mb-1">Kerjakan Latihan Soal</h3>
              <p className="text-slate-500 text-xs mb-3">Soal Pilihan Ganda untuk menguji pemahamanmu.</p>
              <button className={`${kuisDone ? 'bg-sky-50 text-sky-700' : 'bg-slate-50 text-slate-600'} px-4 py-2.5 rounded-xl text-xs font-bold w-full text-left flex justify-between items-center`}>
-               {kuisDone ? 'Coba Lagi' : 'Mulai Kuis'} <span>📝</span>
+               {kuisDone ? 'Coba Lagi' : 'Mulai Kuis'} <span> <FileEdit className="w-5 h-5" /> </span>
              </button>
           </div>
         </div>
@@ -2363,7 +2437,7 @@ export default function App() {
              <h3 className="font-bold text-slate-800 text-base mb-1">Aksi Nyata (Proyek)</h3>
              <p className="text-slate-500 text-xs mb-3">Terapkan ilmumu di dunia nyata!</p>
              <button className={`${proyekDone ? 'bg-orange-50 text-orange-700' : 'bg-slate-50 text-slate-600'} px-4 py-2.5 rounded-xl text-xs font-bold w-full text-left flex justify-between items-center`}>
-               {proyekDone ? 'Lihat Proyek Lagi' : 'Lihat Proyek'} <span>🌱</span>
+               {proyekDone ? 'Lihat Proyek Lagi' : 'Lihat Proyek'} <span> <Leaf className="w-5 h-5" /> </span>
              </button>
           </div>
         </div>
@@ -2388,7 +2462,7 @@ export default function App() {
           if (firstLine.includes('tujuan') || firstLine.includes('kesimpulan') || firstLine.includes('penting') || firstLine.includes('ringkasan')) {
             return (
               <div key={idx} className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex gap-3 shadow-sm">
-                <span className="text-emerald-500 text-lg flex-shrink-0">📌</span>
+                <span className="text-emerald-500 text-lg flex-shrink-0"> <Pin className="w-5 h-5" /> </span>
                 <div>
                   {lines.map((l, i) => (
                     <p key={i} className={`text-emerald-800 ${i === 0 ? 'font-bold mb-1 uppercase tracking-wide text-xs' : 'text-xs leading-relaxed'}`}>{l.replace(/^[-*]\\s*/, '')}</p>
@@ -2437,14 +2511,14 @@ export default function App() {
           <p className="font-bold text-gray-800 text-sm truncate">{activeMaterial?.title || 'Materi Belajar'}</p>
           <p className="text-gray-400 text-xs">Materi Guru · Dokumen Teks</p>
         </div>
-        <button className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 text-lg">🔖</button>
+        <button className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 text-lg"> <Bookmark className="w-5 h-5" /> </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
         <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm mx-auto">
           {/* Header */}
           <div className={`bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-4 mb-5 text-center`}>
-            <span className="text-4xl block mb-2">🌿</span>
+            <span className="text-4xl block mb-2"> <Leaf className="w-5 h-5" /> </span>
             <p className="text-white font-display text-lg">{activeMaterial?.title || 'Tumbuhan, Sumber Kehidupan di Bumi'}</p>
             <p className="text-emerald-100 text-sm">{activeMaterial?.chapter ? `IPAS Kelas 3 · ${activeMaterial.chapter}` : 'IPAS Kelas 3 · Bab 1'}</p>
           </div>
@@ -2460,7 +2534,7 @@ export default function App() {
             )
           ) : (
             <>
-              <p className="font-bold text-emerald-700 text-sm mb-1 uppercase tracking-wide">📌 Tujuan Pembelajaran</p>
+              <p className="font-bold text-emerald-700 text-sm mb-1 uppercase tracking-wide"> <Pin className="w-5 h-5" />  Tujuan Pembelajaran</p>
               <ul className="text-gray-600 text-sm mb-4 space-y-1">
                 {['Menyebutkan bagian-bagian tumbuhan', 'Menjelaskan fungsi setiap bagian', 'Mendeskripsikan proses fotosintesis'].map((t, i) => (
                   <li key={i} className="flex items-start gap-2"><span className="text-emerald-500 mt-0.5">✓</span>{t}</li>
@@ -2473,7 +2547,7 @@ export default function App() {
               <p className="text-gray-600 text-sm leading-relaxed mb-3">Tumbuhan memiliki beberapa bagian utama yang masing-masing memiliki fungsi berbeda-beda dalam menunjang kehidupan tumbuhan tersebut.</p>
 
               <div className="bg-emerald-50 rounded-xl p-4 mb-4 space-y-2">
-                {[['🌱 Akar', 'Menyerap air dan mineral dari tanah; menopang tubuh tumbuhan'], ['🌿 Batang', 'Menopang tubuh tumbuhan; mengangkut air dan nutrisi ke daun'], ['🍃 Daun', 'Tempat berlangsungnya fotosintesis; membantu proses transpirasi'], ['🌸 Bunga', 'Alat perkembangbiakan tumbuhan; menarik serangga penyerbuk']].map(([part, func], i) => (
+                {[['• Akar', 'Menyerap air dan mineral dari tanah; menopang tubuh tumbuhan'], ['• Batang', 'Menopang tubuh tumbuhan; mengangkut air dan nutrisi ke daun'], ['• Daun', 'Tempat berlangsungnya fotosintesis; membantu proses transpirasi'], ['• Bunga', 'Alat perkembangbiakan tumbuhan; menarik serangga penyerbuk']].map(([part, func], i) => (
                   <div key={i} className="bg-white rounded-lg p-2.5">
                     <p className="font-bold text-gray-700 text-sm">{part}</p>
                     <p className="text-gray-500 text-xs mt-0.5">{func}</p>
@@ -2507,7 +2581,7 @@ export default function App() {
     <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
         <p className="text-emerald-100 text-xs font-semibold mb-1">Pusat Aktivitas</p>
-        <p className="text-white font-display text-2xl">Media Interaktif 🎮</p>
+        <p className="text-white font-display text-2xl">Media Interaktif  <Gamepad2 className="w-5 h-5" /> </p>
       </div>
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {/* Featured game — SAINS SPRINT */}
@@ -2518,13 +2592,13 @@ export default function App() {
           <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-lime-400/20 blur-2xl pointer-events-none" />
           <div className="relative flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 animate-pulse-glow"
-              style={{ background: 'linear-gradient(135deg, rgba(163,230,53,0.35), rgba(6,182,212,0.2))', border: '1px solid rgba(163,230,53,0.4)' }}>⚡</div>
+              style={{ background: 'linear-gradient(135deg, rgba(163,230,53,0.35), rgba(6,182,212,0.2))', border: '1px solid rgba(163,230,53,0.4)' }}> <Zap className="w-5 h-5" /> </div>
             <div className="flex-1">
               <span className="text-lime-300 text-[9px] font-black tracking-[0.25em] uppercase">Mode Kilat · Baru</span>
               <p className="font-display text-white text-xl leading-tight">Sains Sprint</p>
               <p className="text-cyan-100/70 text-xs">Adu cepat Benar/Salah · combo &amp; skor</p>
             </div>
-            <span className="text-lime-300 text-2xl">▶</span>
+            <PlayCircle className="w-6 h-6 text-lime-300" />
           </div>
         </button>
 
@@ -2532,8 +2606,8 @@ export default function App() {
           { icon: '🧩', title: 'Cocokkan Bagian Tumbuhan', sub: 'Bab 1 · Drag & drop pasangan', color: 'from-green-500 to-emerald-600', action: () => { resetDrag(); navigate('dragDrop'); } },
           { icon: '🃏', title: 'Kartu Konsep Wujud Zat', sub: 'Bab 2 · Balik kartu & pelajari', color: 'from-blue-500 to-cyan-600', action: () => { setFlipped(new Set()); navigate('flipCards'); } },
           { icon: '🔭', title: 'Percobaan Virtual Magnet', sub: 'Bab 3 · Eksperimen step-by-step', color: 'from-violet-500 to-purple-600', action: () => { setExpStep(0); navigate('virtualEksperimen'); } },
-          { icon: '🌊', title: 'Simulasi Siklus Air', sub: 'Bab 1 · Animasi & penjelasan', color: 'from-sky-500 to-blue-600', action: () => { setSimStep(0); navigate('simulasiAir'); } },
-          { icon: '📝', title: 'Kuis IPAS Campuran', sub: 'Bab 1–4 · 5 soal · +50 XP', color: 'from-amber-500 to-orange-500', action: () => { resetQuiz(); navigate('quiz'); } },
+          { icon: <Waves className="w-5 h-5" />, title: 'Simulasi Siklus Air', sub: 'Bab 1 · Animasi & penjelasan', color: 'from-sky-500 to-blue-600', action: () => { setSimStep(0); navigate('simulasiAir'); } },
+          { icon: <FileEdit className="w-5 h-5" />, title: 'Kuis IPAS Campuran', sub: 'Bab 1–4 · 5 soal · +50 XP', color: 'from-amber-500 to-orange-500', action: () => { resetQuiz(); navigate('quiz'); } },
         ].map((m, i) => (
           <button key={i} onClick={m.action}
             className="w-full flex items-center gap-4 p-4 bg-white rounded-2xl shadow-sm active:scale-95 transition-transform">
@@ -2561,25 +2635,25 @@ export default function App() {
             <BackBtn onBack={goBack} light />
             <div>
               <p className="text-emerald-100 text-xs">Media Interaktif · Bab 1</p>
-              <p className="text-white font-display text-lg">Cocokkan Bagian Tumbuhan 🧩</p>
+              <p className="text-white font-display text-lg">Cocokkan Bagian Tumbuhan  <Puzzle className="w-5 h-5" /> </p>
             </div>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <div className="flex items-center gap-3 bg-emerald-50 rounded-2xl p-3 mb-5">
-            <span className="text-2xl">🦉</span>
+            <Bird className="w-6 h-6" />
             <p className="text-emerald-700 text-sm font-medium">Ketuk bagian tumbuhan di kiri, lalu ketuk fungsinya di kanan!</p>
           </div>
 
           {allMatched ? (
             <div className="flex flex-col items-center py-6 text-center">
-              <span className="text-8xl mb-4 animate-pop block">🎉</span>
+              <span className="text-8xl mb-4 animate-pop block"> <PartyPopper className="w-5 h-5" /> </span>
               <p className="font-display text-gray-800 text-2xl mb-2">Sempurna!</p>
               <p className="text-gray-500 mb-6">Semua pasangan terjawab dengan benar!</p>
               <div className="flex gap-3 mb-6">
                 <div className="bg-emerald-100 rounded-2xl px-5 py-3 text-center"><p className="text-emerald-700 font-black text-xl">+40</p><p className="text-emerald-500 text-xs">XP</p></div>
-                <div className="bg-yellow-100 rounded-2xl px-5 py-3 text-center"><p className="text-yellow-600 font-black text-xl">+15</p><p className="text-yellow-500 text-xs">🪙</p></div>
+                <div className="bg-yellow-100 rounded-2xl px-5 py-3 text-center"><p className="text-yellow-600 font-black text-xl">+15</p><p className="text-yellow-500 text-xs"> <Coins className="w-5 h-5" /> </p></div>
               </div>
               <button onClick={() => { resetDrag(); setScreens(['detailBab']); }}
                 className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold">Kembali ke Bab →</button>
@@ -2628,7 +2702,7 @@ export default function App() {
           <BackBtn onBack={goBack} light />
           <div>
             <p className="text-blue-100 text-xs">Media Interaktif · Bab 2</p>
-            <p className="text-white font-display text-lg">Kartu Konsep Wujud Zat 🃏</p>
+            <p className="text-white font-display text-lg">Kartu Konsep Wujud Zat  <GalleryVertical className="w-5 h-5" /> </p>
           </div>
         </div>
         <p className="text-blue-100 text-sm mt-2">{flipped.size}/{FLIP_CARDS.length} kartu dipelajari</p>
@@ -2636,7 +2710,7 @@ export default function App() {
 
       <div className="flex-1 overflow-y-auto px-5 py-4">
         <div className="flex items-center gap-3 bg-blue-50 rounded-2xl p-3 mb-4">
-          <span className="text-xl">👆</span>
+          <span className="text-xl"> <Pointer className="w-5 h-5" /> </span>
           <p className="text-blue-700 text-sm font-medium">Ketuk kartu untuk membaliknya dan lihat penjelasannya!</p>
         </div>
 
@@ -2651,7 +2725,7 @@ export default function App() {
                   {/* Front */}
                   <div style={{ backfaceVisibility: 'hidden' }}
                     className={`bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl p-4 flex flex-col items-center justify-center text-center min-h-[120px]`}>
-                    <span className="text-3xl mb-2">🔵</span>
+                    <div className="flex justify-center mb-2"><Circle className="w-7 h-7" /></div>
                     <p className="text-white font-display text-lg">{card.front}</p>
                     <p className="text-blue-100 text-xs mt-1">Ketuk untuk lihat</p>
                   </div>
@@ -2669,7 +2743,7 @@ export default function App() {
 
         {flipped.size === FLIP_CARDS.length && (
           <div className="mt-4 bg-blue-50 rounded-2xl p-4 text-center">
-            <p className="text-4xl mb-2">🎉</p>
+            <p className="text-4xl mb-2"> <PartyPopper className="w-5 h-5" /> </p>
             <p className="font-display text-blue-700 text-lg">Semua Kartu Dipelajari!</p>
             <p className="text-blue-500 text-sm mt-1 mb-3">+30 XP diperoleh</p>
             <button onClick={() => setFlipped(new Set())} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm">
@@ -2692,7 +2766,7 @@ export default function App() {
             <BackBtn onBack={goBack} light />
             <div>
               <p className="text-violet-100 text-xs">Percobaan Virtual · Bab 3</p>
-              <p className="text-white font-display text-lg">Sifat Magnet 🔭</p>
+              <p className="text-white font-display text-lg">Sifat Magnet  <Telescope className="w-5 h-5" /> </p>
             </div>
           </div>
           <div className="flex gap-1">
@@ -2741,7 +2815,7 @@ export default function App() {
 
           {expStep === EXP_STEPS.length - 1 && (
             <div className="bg-violet-50 rounded-2xl p-4 border border-violet-200 mb-4">
-              <p className="font-bold text-violet-700 mb-2 text-sm">📊 Kesimpulanku:</p>
+              <p className="font-bold text-violet-700 mb-2 text-sm"> <BarChart2 className="w-5 h-5" />  Kesimpulanku:</p>
               <textarea rows={3} placeholder="Tulis kesimpulanmu dari percobaan ini..."
                 className="w-full px-3 py-2 rounded-xl bg-white border border-violet-200 text-gray-700 text-sm outline-none resize-none" />
             </div>
@@ -2754,7 +2828,7 @@ export default function App() {
           )}
           <button onClick={() => expStep < EXP_STEPS.length - 1 ? setExpStep(e => e + 1) : (() => { addXP(30); markCompleted(BAB_LIST[currentBabIdx].id, 'interaktif'); goBack(); })()}
             className="flex-1 py-4 rounded-2xl font-display text-white bg-violet-600 shadow-lg active:scale-95 transition-transform">
-            {expStep < EXP_STEPS.length - 1 ? 'Langkah Selanjutnya →' : 'Selesai! 🎉'}
+            {expStep < EXP_STEPS.length - 1 ? 'Langkah Selanjutnya →' : 'Selesai!  <PartyPopper className="w-5 h-5" /> '}
           </button>
         </div>
       </div>
@@ -2764,7 +2838,7 @@ export default function App() {
   // ── 16. SIMULASI SIKLUS AIR ────────────────────────────────────────────────
   if (screen === 'simulasiAir') {
     const step = SIM_STEPS[simStep];
-    const icons = ['☀️', '☁️', '🌧️', '🏞️'];
+    const icons = [<Sun className="w-5 h-5" />, <Cloud className="w-5 h-5" />, '• ️', '• ️'];
     const positions = [
       { top: '15%', left: '50%', transform: 'translateX(-50%)' },
       { top: '35%', left: '50%', transform: 'translateX(-50%)' },
@@ -2778,7 +2852,7 @@ export default function App() {
             <BackBtn onBack={goBack} light />
             <div>
               <p className="text-sky-100 text-xs">Simulasi Virtual · Bab 1</p>
-              <p className="text-white font-display text-lg">Siklus Air 🌊</p>
+              <p className="text-white font-display text-lg">Siklus Air  <Waves className="w-5 h-5" /> </p>
             </div>
           </div>
         </div>
@@ -2788,18 +2862,18 @@ export default function App() {
           <div className="bg-gradient-to-b from-sky-100 to-blue-50 rounded-3xl p-4 mb-4 relative" style={{ minHeight: 220 }}>
             {/* Ocean */}
             <div className="absolute bottom-0 left-0 right-0 h-14 bg-blue-400/30 rounded-b-3xl flex items-center justify-center">
-              <span className="text-2xl">🌊</span>
+              <Waves className="w-6 h-6" />
               <span className="text-blue-700 text-xs font-bold ml-1">Laut / Danau</span>
             </div>
             {/* Sun */}
-            <div className="absolute top-4 right-4"><span className="text-4xl" style={{ animation: simStep === 0 ? 'float 2s ease-in-out infinite' : '' }}>☀️</span></div>
+            <div className="absolute top-4 right-4"><span className="text-4xl" style={{ animation: simStep === 0 ? 'float 2s ease-in-out infinite' : '' }}> <Sun className="w-5 h-5" /> ️</span></div>
             {/* Cloud */}
-            <div className="absolute top-10 left-4"><span className="text-4xl" style={{ animation: simStep === 1 ? 'float 2s ease-in-out infinite' : '' }}>☁️</span></div>
-            <div className="absolute top-8 left-16"><span className="text-3xl opacity-70" style={{ animation: simStep === 1 ? 'float 2.5s ease-in-out infinite' : '' }}>🌤️</span></div>
+            <div className="absolute top-10 left-4"><span className="text-4xl" style={{ animation: simStep === 1 ? 'float 2s ease-in-out infinite' : '' }}> <Cloud className="w-5 h-5" /> ️</span></div>
+            <div className="absolute top-8 left-16"><span className="text-3xl opacity-70" style={{ animation: simStep === 1 ? 'float 2.5s ease-in-out infinite' : '' }}> <CloudSun className="w-5 h-5" /> ️</span></div>
             {/* Rain */}
-            {simStep >= 2 && <div className="absolute top-20 left-8 text-2xl" style={{ animation: 'float 1s ease-in-out infinite' }}>🌧️</div>}
+            {simStep >= 2 && <div className="absolute top-20 left-8 text-2xl" style={{ animation: 'float 1s ease-in-out infinite' }}> <CloudRain className="w-5 h-5" /> ️</div>}
             {/* Mountain/River */}
-            <div className="absolute bottom-14 right-8 text-3xl">⛰️</div>
+            <div className="absolute bottom-14 right-8 text-3xl"> <Mountain className="w-5 h-5" /> ️</div>
             {/* Arrows */}
             {simStep >= 0 && <div className="absolute top-16 right-14 text-blue-500 font-black text-xs rotate-[-30deg]">↑ Evaporasi</div>}
             {simStep >= 1 && <div className="absolute top-16 left-20 text-blue-500 font-black text-xs">Kondensasi ↓</div>}
@@ -2833,7 +2907,7 @@ export default function App() {
 
           {simStep === SIM_STEPS.length - 1 && (
             <div className="bg-sky-50 rounded-2xl p-4 border border-sky-200">
-              <p className="font-bold text-sky-700 mb-2 text-sm">✅ Siklus Lengkap!</p>
+              <p className="font-bold text-sky-700 mb-2 text-sm"> <CheckCircle className="w-5 h-5" />  Siklus Lengkap!</p>
               <p className="text-sky-600 text-sm">Air di bumi berputar terus-menerus: laut → uap → awan → hujan → sungai → laut lagi. Itulah mengapa air di bumi tidak pernah habis!</p>
             </div>
           )}
@@ -2844,7 +2918,7 @@ export default function App() {
             className={`flex-1 py-4 rounded-2xl font-bold text-sm ${simStep > 0 ? 'bg-sky-100 text-sky-600' : 'bg-gray-100 text-gray-400'}`}>← Sebelumnya</button>
           <button onClick={() => simStep < SIM_STEPS.length - 1 ? setSimStep(s => s + 1) : goBack()}
             className="flex-1 py-4 rounded-2xl font-display text-white bg-sky-600 shadow-lg active:scale-95 transition-transform text-sm">
-            {simStep < SIM_STEPS.length - 1 ? 'Selanjutnya →' : 'Selesai! 🎉'}
+            {simStep < SIM_STEPS.length - 1 ? 'Selanjutnya →' : 'Selesai!  <PartyPopper className="w-5 h-5" /> '}
           </button>
         </div>
       </div>
@@ -2872,7 +2946,7 @@ export default function App() {
           </div>
           <div className="flex items-center gap-2">
             <div className="bg-white/20 rounded-xl px-3 py-1 inline-flex items-center gap-1">
-              <span className="text-yellow-300 text-sm">⭐</span>
+              <span className="text-yellow-300 text-sm"> <Star className="w-5 h-5" /> </span>
               <span className="text-white text-xs font-bold">+10 XP per jawaban benar</span>
             </div>
           </div>
@@ -2908,7 +2982,7 @@ export default function App() {
           {quizFeed && (
             <div className={`mt-4 p-4 rounded-2xl flex-shrink-0 ${isCorrect ? 'bg-emerald-50 border border-emerald-200' : 'bg-orange-50 border border-orange-200'}`}>
               <div className="flex items-start gap-3 mb-3">
-                <span className="text-2xl">{isCorrect ? '🎉' : '💡'}</span>
+                <span className="text-2xl">{isCorrect ? <PartyPopper className="w-5 h-5" /> : <Lightbulb className="w-5 h-5" />}</span>
                 <p className={`font-black ${isCorrect ? 'text-emerald-700' : 'text-orange-700'}`}>
                   {isCorrect ? 'Hebat! Jawabanmu benar!' : 'Belum tepat, tapi tidak apa-apa! Yuk coba ingat lagi.'}
                 </p>
@@ -2933,7 +3007,7 @@ export default function App() {
         <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-6 pt-12 pb-14 rounded-b-[3rem] text-center flex-shrink-0">
           <p className="text-emerald-100 font-semibold mb-3">Kuis Selesai!</p>
           <div className="flex justify-center gap-1 mb-4">
-            {[0, 1, 2].map(i => <span key={i} className={`text-5xl ${i < stars ? 'text-yellow-400 animate-pop' : 'text-white/20'}`} style={{ animationDelay: `${i * 0.15}s` }}>⭐</span>)}
+            {[0, 1, 2].map(i => <span key={i} className={`text-5xl ${i < stars ? 'text-yellow-400 animate-pop' : 'text-white/20'}`} style={{ animationDelay: `${i * 0.15}s` }}> <Star className="w-5 h-5" /> </span>)}
           </div>
           <p className="text-7xl font-display text-white mb-1">{score}%</p>
           <p className="text-emerald-100">{quizCorrect} dari {QUIZ_IPAS.length} jawaban benar</p>
@@ -2941,20 +3015,20 @@ export default function App() {
 
         <div className="flex-1 overflow-y-auto px-5 -mt-8 space-y-3">
           <div className="bg-white rounded-3xl p-5 shadow-xl">
-            <p className="font-display text-gray-700 mb-4">Reward Kamu! 🎁</p>
+            <p className="font-display text-gray-700 mb-4">Reward Kamu!  <Gift className="w-5 h-5" /> </p>
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-emerald-50 rounded-2xl p-3 text-center">
-                <p className="text-2xl mb-1">⭐</p>
+                <p className="text-2xl mb-1"> <Star className="w-5 h-5" /> </p>
                 <p className="text-emerald-700 font-black text-lg">+{xp}</p>
                 <p className="text-emerald-400 text-xs">XP</p>
               </div>
               <div className="bg-yellow-50 rounded-2xl p-3 text-center">
-                <p className="text-2xl mb-1">🪙</p>
+                <p className="text-2xl mb-1"> <Coins className="w-5 h-5" /> </p>
                 <p className="text-yellow-600 font-black text-lg">+{quizCorrect * 5}</p>
                 <p className="text-yellow-400 text-xs">Koin</p>
               </div>
               <div className={`${stars === 3 ? 'bg-orange-50' : 'bg-gray-50'} rounded-2xl p-3 text-center`}>
-                <p className="text-2xl mb-1">{stars === 3 ? '🏆' : '🔒'}</p>
+                <p className="text-2xl mb-1">{stars === 3 ? <Trophy className="w-5 h-5" /> : <Lock className="w-5 h-5" />}</p>
                 <p className={`font-black text-xs ${stars === 3 ? 'text-orange-600' : 'text-gray-400'}`}>{stars === 3 ? 'Badge!' : 'Score 80%'}</p>
                 <p className={`text-xs ${stars === 3 ? 'text-orange-400' : 'text-gray-300'}`}>{stars === 3 ? 'Ilmuwan Cilik' : 'Untuk badge'}</p>
               </div>
@@ -2962,14 +3036,14 @@ export default function App() {
           </div>
 
           <div className="bg-emerald-50 rounded-2xl p-4 flex items-start gap-3">
-            <span className="text-2xl">🦉</span>
+            <Bird className="w-6 h-6" />
             <p className="text-emerald-700 text-sm font-medium">
-              {score >= 80 ? 'Luar biasa! Kamu sudah memahami materi IPAS dengan sangat baik! 🌟' : score >= 60 ? 'Bagus! Kamu hampir hafal semuanya. Yuk review materi yang belum tepat! 📖' : 'Jangan menyerah! Coba baca lagi materinya, kamu pasti bisa! 💪'}
+              {score >= 80 ? 'Luar biasa! Kamu sudah memahami materi IPAS dengan sangat baik!  <Star className="w-5 h-5" /> ' : score >= 60 ? 'Bagus! Kamu hampir hafal semuanya. Yuk review materi yang belum tepat!  <BookOpen className="w-5 h-5" /> ' : 'Jangan menyerah! Coba baca lagi materinya, kamu pasti bisa!  <Dumbbell className="w-5 h-5" /> '}
             </p>
           </div>
 
           <button onClick={() => { resetQuiz(); navigate('quiz'); }} className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-transform">
-            Coba Lagi 🔄
+            Coba Lagi  <RefreshCw className="w-5 h-5" /> 
           </button>
           <button onClick={() => setScreens(['studentHome'])} className="w-full bg-white text-emerald-600 py-4 rounded-2xl font-bold border-2 border-emerald-200">
             Kembali ke Beranda
@@ -2983,10 +3057,10 @@ export default function App() {
   // ── 19. PROYEK P5 ──────────────────────────────────────────────────────────
   if (screen === 'proyekP5') {
     const phases = [
-      { phase: 1, label: 'Perencanaan', icon: '📋', color: 'bg-amber-500', done: true },
-      { phase: 2, label: 'Riset & Observasi', icon: '🔍', color: 'bg-blue-500', done: true },
-      { phase: 3, label: 'Kreasi & Karya', icon: '🎨', color: 'bg-violet-500', done: p5Phase >= 3 },
-      { phase: 4, label: 'Presentasi', icon: '🗣️', color: 'bg-emerald-500', done: false },
+      { phase: 1, label: 'Perencanaan', icon: <ClipboardList className="w-5 h-5" />, color: 'bg-amber-500', done: true },
+      { phase: 2, label: 'Riset & Observasi', icon: <Search className="w-5 h-5" />, color: 'bg-blue-500', done: true },
+      { phase: 3, label: 'Kreasi & Karya', icon: <Palette className="w-5 h-5" />, color: 'bg-violet-500', done: p5Phase >= 3 },
+      { phase: 4, label: 'Presentasi', icon: '• ️', color: 'bg-emerald-500', done: false },
     ];
     const tasks = [
       { task: 'Amati lingkungan sekitar sekolah', done: true },
@@ -3002,7 +3076,7 @@ export default function App() {
             <BackBtn onBack={goBack} light />
             <div>
               <p className="text-amber-100 text-xs">Proyek Penguatan Profil Pelajar Pancasila</p>
-              <p className="text-white font-display text-lg">Menjaga Lingkungan 🌱</p>
+              <p className="text-white font-display text-lg">Menjaga Lingkungan  <Leaf className="w-5 h-5" /> </p>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -3019,7 +3093,7 @@ export default function App() {
             <div className="flex gap-2">
               {phases.map((ph, i) => (
                 <div key={i} className={`flex-1 rounded-2xl p-3 text-center transition-all ${ph.done ? ph.color : 'bg-gray-100'}`}>
-                  <span className="text-xl block mb-1">{ph.done ? ph.icon : '🔒'}</span>
+                  <span className="text-xl block mb-1">{ph.done ? ph.icon : <Lock className="w-5 h-5" />}</span>
                   <p className={`text-xs font-bold leading-tight ${ph.done ? 'text-white' : 'text-gray-400'}`}>{ph.label}</p>
                 </div>
               ))}
@@ -3091,7 +3165,7 @@ export default function App() {
               </div>
               <div className="w-28 h-28 rounded-[2rem] flex items-center justify-center text-6xl animate-pulse-glow"
                 style={{ background: 'linear-gradient(135deg, rgba(52,211,153,0.3), rgba(6,182,212,0.15))', border: '1px solid rgba(163,230,53,0.4)' }}>
-                ⚡
+                 <Zap className="w-5 h-5" /> 
               </div>
             </div>
             <p className="text-lime-300 text-xs font-black tracking-[0.35em] uppercase mb-2">Mode Kilat · Lintas Bab</p>
@@ -3103,9 +3177,9 @@ export default function App() {
             </p>
             <div className="w-full max-w-[300px] space-y-2.5 mb-2">
               {[
-                { i: '⏱️', t: 'Cepat = Poin Besar', d: 'Sisa waktu jadi Speed Bonus' },
-                { i: '🔗', t: 'Jaga Combo', d: 'Jawaban benar beruntun melipatkan skor' },
-                { i: '❤️', t: '3 Nyawa', d: 'Salah atau kehabisan waktu = nyawa berkurang' },
+                { i: '• ️', t: 'Cepat = Poin Besar', d: 'Sisa waktu jadi Speed Bonus' },
+                { i: <Link className="w-5 h-5" />, t: 'Jaga Combo', d: 'Jawaban benar beruntun melipatkan skor' },
+                { i: '• ️', t: '3 Nyawa', d: 'Salah atau kehabisan waktu = nyawa berkurang' },
               ].map((r, i) => (
                 <div key={i} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 backdrop-blur-sm text-left">
                   <span className="text-2xl">{r.i}</span>
@@ -3120,7 +3194,7 @@ export default function App() {
           <button onClick={startArena}
             className="relative w-full py-4 rounded-2xl font-display text-lg text-emerald-950 active:scale-95 transition-transform"
             style={{ background: 'linear-gradient(135deg, #a3e635, #34d399)', boxShadow: '0 0 30px rgba(163,230,53,0.5)' }}>
-            Mulai Sprint! ⚡
+            Mulai Sprint!  <Zap className="w-5 h-5" /> 
           </button>
         </div>
       </>
@@ -3130,9 +3204,9 @@ export default function App() {
     if (arenaPhase === 'over') {
       const total = ARENA_STATEMENTS.length;
       const acc = Math.round((arenaHits / total) * 100);
-      const rank = arenaScore >= 3000 ? { t: 'Ilmuwan Kilat', e: '🏆', c: '#fde047' }
-        : arenaScore >= 1500 ? { t: 'Peneliti Cepat', e: '🥈', c: '#67e8f9' }
-        : { t: 'Penjelajah Muda', e: '🌱', c: '#86efac' };
+      const rank = arenaScore >= 3000 ? { t: 'Ilmuwan Kilat', e: <Trophy className="w-5 h-5" />, c: '#fde047' }
+        : arenaScore >= 1500 ? { t: 'Peneliti Cepat', e: <Medal className="w-5 h-5" />, c: '#67e8f9' }
+        : { t: 'Penjelajah Muda', e: <Leaf className="w-5 h-5" />, c: '#86efac' };
       return chrome(
         <>
           <div className="relative z-10 flex-1 flex flex-col px-6 pt-10 pb-8 items-center justify-center text-center">
@@ -3149,9 +3223,9 @@ export default function App() {
 
             <div className="grid grid-cols-3 gap-3 w-full max-w-[320px] mb-6">
               {[
-                { l: 'Akurasi', v: `${acc}%`, e: '🎯' },
-                { l: 'Jawaban Benar', v: `${arenaHits}/${total}`, e: '✅' },
-                { l: 'Combo Terbaik', v: `${arenaBest}×`, e: '💫' },
+                { l: 'Akurasi', v: `${acc}%`, e: <Target className="w-5 h-5" /> },
+                { l: 'Jawaban Benar', v: `${arenaHits}/${total}`, e: <CheckCircle className="w-5 h-5" /> },
+                { l: 'Combo Terbaik', v: `${arenaBest}×`, e: <Sparkles className="w-5 h-5" /> },
               ].map((s, i) => (
                 <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-3 backdrop-blur-sm">
                   <span className="text-xl block mb-1">{s.e}</span>
@@ -3165,7 +3239,7 @@ export default function App() {
               <button onClick={startArena}
                 className="w-full py-4 rounded-2xl font-display text-lg text-emerald-950 active:scale-95 transition-transform"
                 style={{ background: 'linear-gradient(135deg, #a3e635, #34d399)', boxShadow: '0 0 24px rgba(163,230,53,0.45)' }}>
-                Main Lagi 🔄
+                Main Lagi  <RefreshCw className="w-5 h-5" /> 
               </button>
               <button onClick={() => setScreens(['mediaHub'])}
                 className="w-full py-4 rounded-2xl font-bold text-cyan-100 bg-white/5 border border-white/15 active:scale-95 transition-transform">
@@ -3211,7 +3285,7 @@ export default function App() {
               </div>
               <div className="flex gap-1">
                 {[0, 1, 2].map(i => (
-                  <span key={i} className={`text-lg transition-all ${i < arenaLives ? '' : 'grayscale opacity-30'}`}>❤️</span>
+                  <span key={i} className={`text-lg transition-all ${i < arenaLives ? '' : 'grayscale opacity-30'}`}> <Heart className="w-5 h-5" /> ️</span>
                 ))}
               </div>
             </div>
@@ -3256,7 +3330,7 @@ export default function App() {
             <div className="h-8 flex items-center justify-center mt-3">
               {arenaLocked && (
                 <p className={`font-display text-base ${arenaLocked.correct ? 'text-lime-300' : 'text-rose-300'} animate-pop`}>
-                  {arenaLocked.correct ? `Tepat! +${arenaLocked.gained}` : 'Aduh, salah! 💥'}
+                  {arenaLocked.correct ? `Tepat! +${arenaLocked.gained}` : 'Aduh, salah!  <Zap className="w-5 h-5" /> '}
                 </p>
               )}
             </div>
