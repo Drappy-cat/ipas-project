@@ -2847,13 +2847,27 @@ export default function App() {
           <div className="w-full h-px bg-gray-100 my-6" />
           
           <p className="font-bold text-gray-800 text-base mb-3 flex items-center gap-2"><Film className="w-5 h-5 text-red-500" /> Video Pembelajaran</p>
-          <div className="bg-gray-900 rounded-2xl aspect-video w-full flex flex-col items-center justify-center shadow-inner relative overflow-hidden mb-6 group cursor-pointer" onClick={() => alert('Memutar video penjelasan materi...')}>
-            <div className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-60 transition-opacity" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop")' }} />
-            <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center pl-1 text-white shadow-lg relative z-10 group-hover:scale-110 transition-transform">
-              <span className="text-2xl">▶</span>
+          {currentBabIdx === 0 && currentSubBabIdx === 0 ? (
+            <div className="w-full rounded-2xl overflow-hidden shadow-inner mb-6 aspect-video bg-gray-900 border border-gray-100">
+              <iframe 
+                width="100%" 
+                height="100%" 
+                src="https://www.youtube.com/embed/GypCnbSAlx8?si=ipas-bab1" 
+                title="Video Pembelajaran" 
+                frameBorder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                allowFullScreen
+              ></iframe>
             </div>
-            <p className="text-white font-bold mt-3 relative z-10 drop-shadow-md">Tonton Video Penjelasan</p>
-          </div>
+          ) : (
+            <div className="bg-gray-900 rounded-2xl aspect-video w-full flex flex-col items-center justify-center shadow-inner relative overflow-hidden mb-6 group cursor-pointer" onClick={() => alert('Memutar video penjelasan materi...')}>
+              <div className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-60 transition-opacity" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop")' }} />
+              <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center pl-1 text-white shadow-lg relative z-10 group-hover:scale-110 transition-transform">
+                <span className="text-2xl">▶</span>
+              </div>
+              <p className="text-white font-bold mt-3 relative z-10 drop-shadow-md">Tonton Video Penjelasan</p>
+            </div>
+          )}
 
           <p className="font-bold text-gray-800 text-base mb-3 flex items-center gap-2"><BookOpen className="w-5 h-5 text-blue-500" /> Ringkasan Materi</p>
           <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-6 text-gray-700 text-sm leading-relaxed">
