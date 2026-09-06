@@ -324,40 +324,8 @@ export default function App() {
     return saved ? parseInt(saved) : 18;
   });
 
-  // Responsive Kids Mode: Inject CSS font-size overrides secara langsung agar benar-benar berfungsi dengan Tailwind
-  useEffect(() => {
-    let styleEl = document.getElementById('student-font-style') as HTMLStyleElement | null;
-    if (!styleEl) {
-      styleEl = document.createElement('style');
-      styleEl.id = 'student-font-style';
-      document.head.appendChild(styleEl);
-    }
-    const isStudentScreen = [
-      'loginSiswa', 'studentHome', 'daftarBab', 'detailBab', 'bacaMateri', 'mediaHub',
-      'dragDrop', 'flipCards', 'virtualEksperimen', 'simulasiAir', 'quiz', 'hasilKuis', 'proyekP5', 'arena', 'studentPengaturan'
-    ].includes(screen);
-    
-    if (isStudentScreen) {
-      const s = studentFontSize;
-      styleEl.textContent = `
-        .student-screen { font-size: ${s}px !important; }
-        .student-screen p, .student-screen span, .student-screen li, .student-screen label { font-size: ${s}px !important; }
-        .student-screen h1 { font-size: ${Math.round(s * 1.8)}px !important; }
-        .student-screen h2 { font-size: ${Math.round(s * 1.5)}px !important; }
-        .student-screen h3, .student-screen .text-xl { font-size: ${Math.round(s * 1.25)}px !important; }
-        .student-screen .text-xs, .student-screen .text-\[10px\] { font-size: ${Math.round(s * 0.75)}px !important; }
-        .student-screen .text-sm { font-size: ${Math.round(s * 0.875)}px !important; }
-        .student-screen .text-base { font-size: ${s}px !important; }
-        .student-screen .text-lg { font-size: ${Math.round(s * 1.125)}px !important; }
-        .student-screen .text-2xl { font-size: ${Math.round(s * 1.5)}px !important; }
-        .student-screen .text-3xl { font-size: ${Math.round(s * 1.875)}px !important; }
-        .student-screen button { font-size: ${s}px !important; }
-        .student-screen input, .student-screen textarea { font-size: ${s}px !important; }
-      `;
-    } else {
-      styleEl.textContent = '';
-    }
-  }, [screen, studentFontSize]);
+  // Zoom otomatis: skala semua elemen siswa proporsional tanpa konflik dengan Tailwind
+  const studentZoom = studentFontSize / 16; // 16=1.0, 18=1.125, 20=1.25, 22=1.375, 24=1.5
 
   const handleSetFontSize = (size: number) => {
     setStudentFontSize(size);
@@ -1456,7 +1424,7 @@ export default function App() {
     };
 
     return (
-      <div className="student-screen h-full bg-emerald-50 flex flex-col overflow-hidden">
+      <div className="h-full bg-emerald-50 flex flex-col overflow-hidden" style={{ zoom: studentZoom }}>
         <div className="bg-gradient-to-br from-emerald-500 to-teal-600 px-5 pt-6 pb-4 rounded-b-[2rem] flex-shrink-0 shadow-lg">
           <div className="flex items-center gap-3 mb-2">
             <BackBtn onBack={goBack} light />
@@ -2399,7 +2367,7 @@ export default function App() {
 
   // ── 7. STUDENT HOME ────────────────────────────────────────────────────────
   if (screen === 'studentHome') return (
-    <div className="student-screen h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
+    <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden" style={{ zoom: studentZoom }}>
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-8 rounded-b-[2.5rem] flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -2494,7 +2462,7 @@ export default function App() {
 
   // ── 8. DAFTAR BAB ──────────────────────────────────────────────────────────
   if (screen === 'daftarBab') return (
-    <div className="student-screen h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
+    <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden" style={{ zoom: studentZoom }}>
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-5 rounded-b-[2.5rem] flex-shrink-0">
         <p className="text-emerald-100 text-xs font-semibold mb-1">IPAS Kelas 3 · Kurikulum Merdeka</p>
         <p className="text-white font-display text-2xl">8 Bab Pembelajaran  <Leaf className="w-5 h-5" /> </p>
@@ -2544,7 +2512,7 @@ export default function App() {
     const proyekDone = completed.includes('proyek');
 
     return (
-    <div className="student-screen h-full bg-slate-50 flex flex-col overflow-hidden font-sans">
+    <div className="h-full bg-slate-50 flex flex-col overflow-hidden font-sans" style={{ zoom: studentZoom }}>
       <div className={`relative bg-gradient-to-r ${bab.gradient} px-5 pt-10 pb-4 shadow-md flex-shrink-0`}>
         <div className="flex items-center gap-3">
           <button onClick={goBack} className="w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl flex items-center justify-center text-white transition-colors active:scale-95 flex-shrink-0">
@@ -2775,7 +2743,7 @@ export default function App() {
 
   // ── 12. MEDIA HUB ──────────────────────────────────────────────────────────
   if (screen === 'mediaHub') return (
-    <div className="student-screen h-full bg-[#F0FDF4] flex flex-col overflow-hidden">
+    <div className="h-full bg-[#F0FDF4] flex flex-col overflow-hidden" style={{ zoom: studentZoom }}>
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
         <p className="text-emerald-100 text-xs font-semibold mb-1">Pusat Aktivitas</p>
         <p className="text-white font-display text-2xl">Media Interaktif  <Gamepad2 className="w-5 h-5" /> </p>
@@ -3255,7 +3223,7 @@ export default function App() {
   // ── STUDENT PENGATURAN ─────────────────────────────────────────────────────
   if (screen === 'studentPengaturan') {
     return (
-      <div className="student-screen h-full bg-emerald-50 flex flex-col overflow-hidden">
+      <div className="h-full bg-emerald-50 flex flex-col overflow-hidden" style={{ zoom: studentZoom }}>
         <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
           <p className="text-white font-display text-xl flex items-center gap-2"><Settings className="w-5 h-5" /> Pengaturan</p>
           <p className="text-emerald-200 text-xs mt-1">Sesuaikan tampilan belajarmu</p>
@@ -3346,7 +3314,7 @@ export default function App() {
       { task: 'Presentasikan hasil kepada teman sekelas', done: false },
     ];
     return (
-      <div className="student-screen h-full bg-[#FFFBEB] flex flex-col overflow-hidden">
+      <div className="h-full bg-[#FFFBEB] flex flex-col overflow-hidden" style={{ zoom: studentZoom }}>
         <div className="bg-gradient-to-br from-amber-500 to-orange-600 px-5 pt-10 pb-6 rounded-b-[2.5rem] flex-shrink-0">
           <div className="flex items-center gap-3 mb-3">
             <BackBtn onBack={goBack} light />
