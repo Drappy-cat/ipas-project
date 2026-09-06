@@ -1834,7 +1834,7 @@ export default function App() {
                       };
                       reader.readAsText(file);
                     } else {
-                      const html = `<div class="p-4 bg-sky-50 rounded-xl text-center border-2 border-dashed border-sky-300 my-4 max-w-sm mx-auto shadow-sm">
+                      const html = `<div class="p-5 bg-sky-50 rounded-2xl text-center border-2 border-dashed border-sky-300 my-4 w-full shadow-sm">
                         <span class="text-4xl block mb-2"> <Paperclip className="w-5 h-5" /> </span>
                         <p class="font-bold text-sky-800 text-sm">File Materi Terlampir</p>
                         <p class="text-xs text-sky-600 mt-1">${file.name} (${(file.size/1024).toFixed(1)} KB)</p>
@@ -2795,8 +2795,8 @@ export default function App() {
           {activeMaterial?.content ? (
             activeMaterial.content.includes('<') && activeMaterial.content.includes('>') ? (
               <div 
-                 className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 text-gray-700 text-sm leading-relaxed mb-6 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-2"
-                 dangerouslySetInnerHTML={{ __html: activeMaterial.content }} 
+                 className="text-gray-700 text-base leading-relaxed mb-8 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-3 [&_img]:rounded-xl [&_img]:shadow-sm [&_img]:max-w-full"
+                 dangerouslySetInnerHTML={{ __html: activeMaterial.content.replace(/max-w-sm mx-auto/g, 'w-full') }} 
               />
             ) : (
               renderSmartMateri(activeMaterial.content)
