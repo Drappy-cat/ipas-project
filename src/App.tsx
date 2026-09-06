@@ -73,7 +73,7 @@ const BAB_LIST = [
     judul: 'Keajaiban Tubuhku',
     gradient: 'from-amber-500 to-orange-600',
     cp: 'Peserta didik mengenal bagian tubuh manusia beserta fungsinya.',
-    topics: ['Bagian Tubuh Kita', 'Fungsi Anggota Tubuh', 'Merawat Tubuh'],
+    topics: ['Misteri Tubuhku', 'Tubuhku Unik, Tubuhku Berharga'],
     materi: [
       { type: 'pdf', icon: <FileText className="w-5 h-5 text-gray-500" />, title: 'Rangkuman Bab 1 — Tubuhku', uploader: 'Guru', tanggal: '2 hari lalu' },
     ],
@@ -86,7 +86,7 @@ const BAB_LIST = [
     judul: 'Dahulu, Kini, dan Nanti',
     gradient: 'from-green-500 to-emerald-600',
     cp: 'Peserta didik menceritakan perubahan yang terjadi pada diri dan sekitarnya dari waktu ke waktu.',
-    topics: ['Arah Mata Angin', 'Denah Tempat'],
+    topics: ['Cerita dari Masa Lalu', 'Cerita dari Masa ke Masa'],
     materi: [],
     interaktif: [],
   },
@@ -95,7 +95,7 @@ const BAB_LIST = [
     judul: 'Peduli dan Berbagi',
     gradient: 'from-lime-600 to-green-700',
     cp: 'Peserta didik memahami pentingnya bersikap peduli dan berbagi dengan sesama.',
-    topics: ['Gotong Royong', 'Saling Menghargai'],
+    topics: ['Perjalananku', 'Aku Peduli, Aku Pahlawan'],
     materi: [],
     interaktif: [],
   },
@@ -104,7 +104,7 @@ const BAB_LIST = [
     judul: 'Siklus Hidup yang Menakjubkan',
     gradient: 'from-yellow-400 to-amber-500',
     cp: 'Peserta didik mengamati dan mendeskripsikan siklus hidup makhluk hidup.',
-    topics: ['Siklus Hidup Tumbuhan', 'Siklus Hidup Hewan'],
+    topics: ['Rahasia Kehidupan Hewan', 'Rahasia Tumbuhan Tumbuh'],
     materi: [],
     interaktif: [
       { type: 'simulasi', icon: <Microscope className="w-8 h-8 text-yellow-500" />, title: 'Simulasi Metamorfosis', screen: 'simulasiAir' as Screen },
@@ -115,16 +115,16 @@ const BAB_LIST = [
     judul: 'Bijak Berbelanja Kebutuhan',
     gradient: 'from-blue-500 to-cyan-600',
     cp: 'Peserta didik mengenal nilai mata uang dan prioritas kebutuhan sehari-hari.',
-    topics: ['Kenampakan Alam', 'Ciri Khas Daerah'],
+    topics: ['Ayo, Berkenalan dengan Uang!', 'Hidup Hemat, Hidup Bijak'],
     materi: [],
     interaktif: [],
   },
   {
     id: 6, emoji: '⚡',
-    judul: 'Energi, sang Pemberi Kekuatan!',
+    judul: 'Energi, sang Pemberi Kekuatan',
     gradient: 'from-violet-500 to-purple-600',
     cp: 'Peserta didik mengenal bentuk energi dan memanfaatkannya.',
-    topics: ['Sumber Energi', 'Bentuk Energi', 'Manfaat Energi'],
+    topics: ['Energi di Sekitar Kita', 'Dari Mana Energi Datang?'],
     materi: [],
     interaktif: [
       { type: 'eksperimen', icon: '🔭', title: 'Percobaan Virtual: Sumber Energi', screen: 'virtualEksperimen' as Screen },
@@ -135,7 +135,7 @@ const BAB_LIST = [
     judul: 'Jejak Penjelajah',
     gradient: 'from-rose-500 to-pink-600',
     cp: 'Peserta didik memahami arah mata angin dan denah sederhana.',
-    topics: ['Gaya Magnet', 'Gaya Gesek', 'Gaya Gravitasi'],
+    topics: ['Aku Tidak Akan Tersesat', 'Penjelajahanku'],
     materi: [],
     interaktif: [],
   },
@@ -144,7 +144,7 @@ const BAB_LIST = [
     judul: 'Rahasia Tiga Wujud Zat',
     gradient: 'from-teal-500 to-cyan-600',
     cp: 'Peserta didik mengidentifikasi benda padat, cair, dan gas beserta perubahannya.',
-    topics: ['Wujud Benda', 'Perubahan Wujud'],
+    topics: ['Tiga Sahabat dengan Kekuatan Berbeda', 'Saat Wujud Zat Berubah'],
     materi: [],
     interaktif: [
       { type: 'flipcard', icon: '🃏', title: 'Kartu Konsep Wujud Zat', screen: 'flipCards' as Screen },
@@ -323,6 +323,9 @@ export default function App() {
     const saved = localStorage.getItem('studentFontSize');
     return saved ? parseInt(saved) : 18;
   });
+  
+  // State accordion sub-bab di daftarBab / studentHome
+  const [expandedBab, setExpandedBab] = useState<number | null>(null);
 
   // Zoom otomatis: skala semua elemen siswa proporsional tanpa konflik dengan Tailwind
   const studentZoom = studentFontSize / 16; // 16=1.0, 18=1.125, 20=1.25, 22=1.375, 24=1.5
@@ -2471,32 +2474,58 @@ export default function App() {
         {BAB_LIST.map((b, i) => {
           const locked = i > 1;
           const actualProgress = getBabProgress(b.id, b.interaktif.length > 0);
+          const isExpanded = expandedBab === b.id;
+          
           return (
-            <button key={b.id} onClick={() => { if (!locked) { setCurrentBabIdx(i); navigate('detailBab'); } }}
-              className={`w-full rounded-3xl overflow-hidden shadow-sm active:scale-95 transition-all ${locked ? 'opacity-50' : ''}`}>
-              <div className={`bg-gradient-to-r ${b.gradient} p-4`}>
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">{locked ? <Lock className="w-5 h-5" /> : b.emoji}</div>
-                  <div className="flex-1 text-left">
-                    <p className="text-white/70 text-xs font-semibold">Bab {b.id}</p>
-                    <p className="text-white font-display text-base leading-tight">{b.judul}</p>
-                    <p className="text-white/60 text-xs mt-0.5">{b.topics.length} topik · {b.materi.length + b.interaktif.length} media</p>
+            <div key={b.id} className={`w-full rounded-3xl overflow-hidden shadow-sm transition-all ${locked ? 'opacity-50' : ''} ${isExpanded ? 'ring-2 ring-emerald-400' : ''}`}>
+              <button onClick={() => { if (!locked) setExpandedBab(isExpanded ? null : b.id); }} className="w-full text-left active:scale-95 transition-transform">
+                <div className={`bg-gradient-to-r ${b.gradient} p-4`}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-3xl backdrop-blur-sm">{locked ? <Lock className="w-5 h-5" /> : b.emoji}</div>
+                    <div className="flex-1 text-left">
+                      <p className="text-white/70 text-xs font-semibold">Bab {b.id}</p>
+                      <p className="text-white font-display text-base leading-tight">{b.judul}</p>
+                      <p className="text-white/60 text-xs mt-0.5">{b.topics.length} topik · {b.materi.length + b.interaktif.length} media</p>
+                    </div>
+                    {!locked && <span className="text-white text-2xl transition-transform duration-300" style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>›</span>}
                   </div>
-                  {!locked && <span className="text-white text-lg">→</span>}
                 </div>
-              </div>
+              </button>
+              
               {!locked && (
-                <div className="bg-white px-4 py-2.5 flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full bg-gradient-to-r ${b.gradient} rounded-full`} style={{ width: `${actualProgress}%` }} />
+                <div className="bg-white">
+                  <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className="p-4 bg-emerald-50/50 border-b border-gray-100">
+                      <p className="text-[10px] font-bold text-emerald-800 mb-3 uppercase tracking-widest flex items-center gap-1">
+                        <BookOpen className="w-3 h-3" /> Topik Pembelajaran:
+                      </p>
+                      <ul className="space-y-3 mb-4">
+                        {b.topics.map((t, idx) => (
+                          <li key={idx} className="flex items-start gap-2.5">
+                            <span className="text-emerald-500 font-display text-sm w-4 mt-0.5">{String.fromCharCode(65 + idx)}.</span>
+                            <span className="text-gray-700 text-sm font-semibold leading-snug">{t}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <button onClick={() => { setCurrentBabIdx(i); navigate('detailBab'); }} 
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-sm shadow-emerald-200 text-sm">
+                        Masuk ke Bab Ini <span>→</span>
+                      </button>
+                    </div>
                   </div>
-                  <span className="text-gray-500 text-xs font-bold">{actualProgress}%</span>
+                  
+                  <div className="px-4 py-2.5 flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className={`h-full bg-gradient-to-r ${b.gradient} rounded-full`} style={{ width: `${actualProgress}%` }} />
+                    </div>
+                    <span className="text-gray-500 text-[10px] font-bold">{actualProgress}% Selesai</span>
+                  </div>
                 </div>
               )}
-            </button>
+            </div>
           );
         })}
-        <div className="h-2" />
+        <div className="h-4" />
       </div>
       <StudentBottomNav />
     </div>
