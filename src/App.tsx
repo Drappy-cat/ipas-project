@@ -2391,7 +2391,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 max-w-5xl mx-auto w-full">
         {/* Lanjutkan belajar */}
         <div>
           <p className="font-display text-gray-700 mb-2.5">Lanjutkan Belajar  <BookOpen className="w-5 h-5" /> </p>
@@ -2443,7 +2443,7 @@ export default function App() {
             <p className="font-display text-gray-700">Semua Bab IPAS</p>
             <button onClick={() => handleTabPress('bab')} className="text-emerald-600 text-sm font-bold">Semua bab →</button>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
             {BAB_LIST.slice(0, 4).map((b, i) => (
               <button key={b.id} onClick={() => { setCurrentBabIdx(i); navigate('subBab'); }}
                 className="bg-white rounded-3xl p-4 shadow-sm text-left active:scale-95 transition-transform">
@@ -2490,8 +2490,10 @@ export default function App() {
         </div>
 
         {/* Sub-bab cards */}
-        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-4">
-          <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-4">Pilih Topik yang Ingin Dipelajari:</p>
+        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4 max-w-5xl mx-auto w-full">
+          <div className="sm:col-span-2">
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest sm:mb-2">Pilih Topik yang Ingin Dipelajari:</p>
+          </div>
           
           {subTopics.map((topic, idx) => (
             <button key={idx} onClick={() => { setCurrentSubBabIdx(idx); navigate('detailBab'); }}
@@ -2522,8 +2524,7 @@ export default function App() {
             </button>
           ))}
 
-          {/* Info card */}
-          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-start gap-3 mt-2">
+          <div className="sm:col-span-2 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-start gap-3 mt-2 sm:mt-0">
             <span className="text-2xl flex-shrink-0">💡</span>
             <div>
               <p className="text-emerald-700 font-bold text-sm">Kerjakan urutan yang benar!</p>
@@ -2544,7 +2545,7 @@ export default function App() {
         <p className="text-emerald-100 text-xs font-semibold mb-1">IPAS Kelas 3 · Kurikulum Merdeka</p>
         <p className="text-white font-display text-2xl">8 Bab Pembelajaran  <Leaf className="w-5 h-5" /> </p>
       </div>
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 sm:space-y-4 max-w-3xl mx-auto w-full">
         {BAB_LIST.map((b, i) => {
           const locked = i > 1;
           const actualProgress = getBabProgress(b.id, b.interaktif.length > 0);
@@ -2638,7 +2639,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6 relative">
+      <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6 relative max-w-3xl mx-auto w-full">
         <div className="absolute left-9 top-8 bottom-12 w-0.5 bg-slate-200 z-0 rounded-full" />
 
         <div className="relative z-10 flex gap-4">
@@ -2782,8 +2783,8 @@ export default function App() {
         <button className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500 text-lg"> <Bookmark className="w-5 h-5" /> </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm mx-auto">
+      <div className="flex-1 overflow-y-auto p-4 max-w-3xl mx-auto w-full">
+        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
           {/* Header */}
           <div className={`bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-4 mb-5 text-center`}>
             <span className="text-4xl block mb-2"> <Leaf className="w-5 h-5" /> </span>
