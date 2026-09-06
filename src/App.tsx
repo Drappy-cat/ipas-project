@@ -2795,6 +2795,12 @@ export default function App() {
           {activeMaterial?.content ? (
             activeMaterial.content.includes('<') && activeMaterial.content.includes('>') ? (
               <div 
+                 onClick={(e) => {
+                   const target = e.target as HTMLElement;
+                   if (target.tagName === 'BUTTON' && target.innerText.includes('File')) {
+                     alert('Berhasil! File sedang diunduh ke perangkat Anda...');
+                   }
+                 }}
                  className="text-gray-700 text-base leading-relaxed mb-8 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-3 [&_img]:rounded-xl [&_img]:shadow-sm [&_img]:max-w-full"
                  dangerouslySetInnerHTML={{ __html: activeMaterial.content.replace(/max-w-sm mx-auto/g, 'w-full') }} 
               />
