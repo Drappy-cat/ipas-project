@@ -8,7 +8,7 @@ type Screen =
   | 'homepage' | 'splash' | 'onboarding'
   | 'roleSelect' | 'loginGuru' | 'loginSiswa' | 'forgotPassword'
   | 'teacherDash' | 'uploadMateri' | 'buatInteraktif' | 'progressSiswa' | 'kelolaBab' | 'pengaturanGuru'
-  | 'studentHome' | 'daftarBab' | 'detailBab' | 'studentPengaturan'
+  | 'studentHome' | 'daftarBab' | 'subBab' | 'detailBab' | 'studentPengaturan'
   | 'bacaMateri' | 'mediaHub'
   | 'dragDrop' | 'flipCards' | 'virtualEksperimen' | 'simulasiAir'
 | 'quiz' | 'hasilKuis' | 'proyekP5' | 'arena';
@@ -300,6 +300,7 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState('home');
   const [currentBabIdx, setCurrentBabIdx] = useState(0);
+  const [currentSubBabIdx, setCurrentSubBabIdx] = useState(0); // 0 = Topik A, 1 = Topik B
 
   // Upload flow (multi-step wizard)
   const [uploadStep, setUploadStep] = useState(0);
@@ -2394,7 +2395,7 @@ export default function App() {
         {/* Lanjutkan belajar */}
         <div>
           <p className="font-display text-gray-700 mb-2.5">Lanjutkan Belajar  <BookOpen className="w-5 h-5" /> </p>
-          <button onClick={() => { setCurrentBabIdx(0); navigate('detailBab'); }}
+          <button onClick={() => { setCurrentBabIdx(0); navigate('subBab'); }}
             className="w-full bg-gradient-to-r from-green-500 to-emerald-600 rounded-3xl p-4 text-left shadow-lg shadow-emerald-200 active:scale-95 transition-transform">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center"><Leaf className="w-6 h-6" /></div>
@@ -2444,7 +2445,7 @@ export default function App() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             {BAB_LIST.slice(0, 4).map((b, i) => (
-              <button key={b.id} onClick={() => { setCurrentBabIdx(i); navigate('detailBab'); }}
+              <button key={b.id} onClick={() => { setCurrentBabIdx(i); navigate('subBab'); }}
                 className="bg-white rounded-3xl p-4 shadow-sm text-left active:scale-95 transition-transform">
                 <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${b.gradient} flex items-center justify-center text-2xl mb-3`}>{b.emoji}</div>
                 <p className="text-gray-400 text-xs font-semibold">Bab {b.id}</p>
@@ -2462,6 +2463,79 @@ export default function App() {
       <StudentBottomNav />
     </div>
   );
+
+  // ── SUB BAB ─────────────────────────────────────────────────────────────────
+  if (screen === 'subBab') {
+    const subTopics = bab.topics;
+    // Sub-topic icons per chapter based on school subject
+    const subIcons = ['📖', '🔬', '🌱', '⚗️', '🧩', '💡', '🗺️', '🧊'];
+    const babIcon = subIcons[(bab.id - 1) % subIcons.length];
+    
+    return (
+      <div className="h-full flex flex-col overflow-hidden" style={{ zoom: studentZoom }}>
+        {/* Header */}
+        <div className={`relative bg-gradient-to-br ${bab.gradient} px-5 pt-10 pb-8 rounded-b-[2.5rem] flex-shrink-0 shadow-lg`}>
+          <div className="flex items-center gap-3 mb-5">
+            <button onClick={goBack} className="w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl flex items-center justify-center text-white transition-colors active:scale-95">
+              <span className="font-bold text-xl">←</span>
+            </button>
+            <div>
+              <p className="text-white/60 text-xs font-bold tracking-widest uppercase">Bab {bab.id}</p>
+              <h1 className="text-white font-display text-xl leading-tight">{bab.judul}</h1>
+            </div>
+          </div>
+          <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 border border-white/20">
+            <p className="text-white/80 text-xs leading-relaxed">{bab.cp}</p>
+          </div>
+        </div>
+
+        {/* Sub-bab cards */}
+        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-4">
+          <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-4">Pilih Topik yang Ingin Dipelajari:</p>
+          
+          {subTopics.map((topic, idx) => (
+            <button key={idx} onClick={() => { setCurrentSubBabIdx(idx); navigate('detailBab'); }}
+              className="w-full text-left bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden active:scale-95 transition-all hover:shadow-md group">
+              
+              {/* Top color strip */}
+              <div className={`h-1.5 bg-gradient-to-r ${bab.gradient}`} />
+              
+              <div className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${bab.gradient} flex items-center justify-center text-3xl flex-shrink-0 shadow-sm`}>
+                    {babIcon}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-display px-2 py-0.5 rounded-full bg-gradient-to-r ${bab.gradient} text-white font-bold`}>
+                        Topik {String.fromCharCode(65 + idx)}
+                      </span>
+                    </div>
+                    <p className="font-display text-gray-800 text-lg leading-tight">{topic}</p>
+                    <p className="text-gray-400 text-xs mt-1">Materi · Kuis · Aktivitas</p>
+                  </div>
+                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${bab.gradient} flex items-center justify-center text-white shadow-sm flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                    <span className="font-bold text-sm">→</span>
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+
+          {/* Info card */}
+          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-start gap-3 mt-2">
+            <span className="text-2xl flex-shrink-0">💡</span>
+            <div>
+              <p className="text-emerald-700 font-bold text-sm">Kerjakan urutan yang benar!</p>
+              <p className="text-emerald-600 text-xs mt-0.5">Pelajari Topik A terlebih dahulu, lalu lanjut ke Topik B untuk pemahaman yang maksimal.</p>
+            </div>
+          </div>
+          <div className="h-4" />
+        </div>
+        <StudentBottomNav />
+      </div>
+    );
+  }
 
   // ── 8. DAFTAR BAB ──────────────────────────────────────────────────────────
   if (screen === 'daftarBab') return (
@@ -2507,7 +2581,7 @@ export default function App() {
                           </li>
                         ))}
                       </ul>
-                      <button onClick={() => { setCurrentBabIdx(i); navigate('detailBab'); }} 
+                      <button onClick={() => { setCurrentBabIdx(i); navigate('subBab'); }} 
                         className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-sm shadow-emerald-200 text-sm">
                         Masuk ke Bab Ini <span>→</span>
                       </button>
