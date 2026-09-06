@@ -2835,6 +2835,28 @@ export default function App() {
             </>
           )}
 
+          {/* === TAMBAHAN: VIDEO & RINGKASAN MATERI === */}
+          <div className="w-full h-px bg-gray-100 my-6" />
+          
+          <p className="font-bold text-gray-800 text-base mb-3 flex items-center gap-2"><Film className="w-5 h-5 text-red-500" /> Video Pembelajaran</p>
+          <div className="bg-gray-900 rounded-2xl aspect-video w-full flex flex-col items-center justify-center shadow-inner relative overflow-hidden mb-6 group cursor-pointer" onClick={() => alert('Memutar video penjelasan materi...')}>
+            <div className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-60 transition-opacity" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=2022&auto=format&fit=crop")' }} />
+            <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center pl-1 text-white shadow-lg relative z-10 group-hover:scale-110 transition-transform">
+              <span className="text-2xl">▶</span>
+            </div>
+            <p className="text-white font-bold mt-3 relative z-10 drop-shadow-md">Tonton Video Penjelasan</p>
+          </div>
+
+          <p className="font-bold text-gray-800 text-base mb-3 flex items-center gap-2"><BookOpen className="w-5 h-5 text-blue-500" /> Ringkasan Materi</p>
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-6 text-gray-700 text-sm leading-relaxed">
+            <p className="font-bold text-blue-800 mb-2">Ingat Poin Penting Ini:</p>
+            <ul className="list-disc pl-5 space-y-1 text-blue-900/80">
+              <li>Materi pada <b>{bab.judul}</b> ini sangat penting untuk kehidupan kita sehari-hari.</li>
+              <li>Perhatikan dengan seksama bagian video yang menjelaskan proses atau langkah-langkah di alam.</li>
+              <li>Pastikan kamu sudah memahami materi sebelum menekan tombol selesai dan lanjut ke kuis!</li>
+            </ul>
+          </div>
+
           <button onClick={() => { addXP(20); markCompleted(BAB_LIST[currentBabIdx].id, 'materi'); goBack(); }} className="w-full mt-4 bg-emerald-600 text-white py-4 rounded-xl font-bold shadow-md hover:bg-emerald-700 active:scale-95 transition-all">
             Selesai Membaca & Lanjut →
           </button>
