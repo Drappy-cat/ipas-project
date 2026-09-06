@@ -318,6 +318,7 @@ export default function App() {
   const [dbUsers, setDbUsers] = useState<any[]>([]);
   const [localBabs, setLocalBabs] = useState([...BAB_LIST]);
   const [activeMaterial, setActiveMaterial] = useState<any>(null);
+  const [viewingFile, setViewingFile] = useState<boolean>(false);
 
   // State ukuran font siswa, tersimpan di localStorage agar persisten
   const [studentFontSize, setStudentFontSize] = useState<number>(() => {
@@ -2798,7 +2799,7 @@ export default function App() {
                  onClick={(e) => {
                    const target = e.target as HTMLElement;
                    if (target.tagName === 'BUTTON' && target.innerText.includes('File')) {
-                     alert('Berhasil! File sedang diunduh ke perangkat Anda...');
+                     setViewingFile(true);
                    }
                  }}
                  className="text-gray-700 text-base leading-relaxed mb-8 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-3 [&_img]:rounded-xl [&_img]:shadow-sm [&_img]:max-w-full"
@@ -2870,6 +2871,45 @@ export default function App() {
         </div>
         <div className="h-4" />
       </div>
+
+      {/* MODAL DOCUMENT VIEWER */}
+      {viewingFile && (
+        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col p-4 sm:p-8 animate-fade-in">
+          <div className="flex justify-between items-center bg-gray-900 rounded-t-2xl p-4 sm:p-5 text-white shadow-xl max-w-5xl mx-auto w-full">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center">
+                <FileText className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="font-bold text-sm sm:text-base">{activeMaterial?.title || 'Dokumen Materi'}.pdf</p>
+                <p className="text-gray-400 text-xs">Page 1 of 12 • 100% Zoom</p>
+              </div>
+            </div>
+            <button onClick={() => setViewingFile(false)} className="w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded-xl flex items-center justify-center transition-colors active:scale-95">
+              ✕
+            </button>
+          </div>
+          <div className="flex-1 bg-gray-200 rounded-b-2xl overflow-y-auto max-w-5xl mx-auto w-full shadow-2xl relative">
+            {/* Fake PDF Content */}
+            <div className="bg-white min-h-[800px] m-4 sm:m-8 rounded shadow p-8 sm:p-12 text-gray-800 font-serif leading-relaxed">
+              <h1 className="text-3xl font-bold mb-6 text-center">{activeMaterial?.title || 'Materi Belajar IPAS'}</h1>
+              <div className="h-0.5 bg-gray-800 w-full mb-8" />
+              <p className="mb-4">Pendahuluan materi ini disiapkan oleh guru untuk memperdalam pemahaman siswa tentang <b>{bab.judul}</b>. Siswa diharapkan membaca dengan teliti bagian demi bagian.</p>
+              <h2 className="text-xl font-bold mt-8 mb-4">I. Konsep Dasar</h2>
+              <p className="mb-4 text-justify">Pada pembahasan awal, kita akan mengeksplorasi fenomena-fenomena alam yang berkaitan dengan keseharian kita. Mengamati sekeliling adalah kunci untuk memahami cara alam semesta bekerja.</p>
+              <div className="bg-gray-100 p-6 rounded my-6 border-l-4 border-emerald-500">
+                <p className="italic text-gray-600">"Sains tidak hanya dipelajari di dalam kelas, melainkan ada di setiap hela napas dan langkah kaki kita di alam terbuka."</p>
+              </div>
+              <h2 className="text-xl font-bold mt-8 mb-4">II. Aktivitas Lapangan</h2>
+              <p className="mb-4 text-justify">Setelah memahami konsep teori, lakukan eksperimen sederhana. Catat setiap perubahan atau hasil yang kamu temukan di dalam tabel pengamatan.</p>
+              <div className="flex gap-4 mt-8">
+                <div className="flex-1 h-32 bg-gray-200 rounded border border-gray-300 flex items-center justify-center text-gray-400">[Gambar Ilustrasi 1]</div>
+                <div className="flex-1 h-32 bg-gray-200 rounded border border-gray-300 flex items-center justify-center text-gray-400">[Gambar Ilustrasi 2]</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
